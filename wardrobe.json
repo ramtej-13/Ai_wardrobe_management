@@ -1,0 +1,30 @@
+{
+    "user": {
+        "name": "John Doe",
+        "age": 30,
+        "gender": "Male",
+        "height": 180.0,
+        "weight": 75.0
+    },
+    "next_id_num": 3,
+    "clothes": [
+        {
+            "id": "C001",
+            "name": "Silk White Shirt",
+            "category": "Shirt",
+            "color": "Off-White",
+            "description": "Formal cotton shirt",
+            "date_added": "2026-06-15",
+            "image_path": "C:/images/shirt.png"
+        },
+        {
+            "id": "C002",
+            "name": "red shirt",
+            "category": "shirt",
+            "color": "Red",
+            "description": "a red striped cotton shirt",
+            "date_added": "2026-06-15",
+            "image_path": "c:/img.png"
+        }
+    ]
+}
