@@ -1,16 +1,16 @@
-class Clothing:
+class WardrobeItem:
     def __init__(self, item_id: str, name: str, category: str, color: str, description: str, date_added: str, image_path: str = None):
         """
-        Initializes a Clothing item.
+        Initializes a Wardrobe item.
         
         Args:
             item_id (str): Unique identifier (e.g. C001).
-            name (str): Name of the clothing (e.g. White Shirt).
+            name (str): Name of the item (e.g. White Shirt).
             category (str): Category (e.g. Shirt, Pants, Shoes).
-            color (str): Color of the clothing.
+            color (str): Color of the item.
             description (str): Description or notes.
             date_added (str): Date added (format YYYY-MM-DD).
-            image_path (str, optional): File path to the clothing image. Defaults to None.
+            image_path (str, optional): File path to the item image. Defaults to None.
         """
         self.id = item_id
         self.name = name
@@ -21,7 +21,7 @@ class Clothing:
         self.image_path = image_path
 
     def to_dict(self) -> dict:
-        """Serializes the clothing object to a dictionary."""
+        """Serializes the item object to a dictionary."""
         return {
             "id": self.id,
             "name": self.name,
@@ -33,8 +33,8 @@ class Clothing:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'Clothing':
-        """Deserializes a dictionary to a Clothing object."""
+    def from_dict(cls, data: dict) -> 'WardrobeItem':
+        """Deserializes a dictionary to a WardrobeItem object."""
         return cls(
             item_id=data["id"],
             name=data["name"],

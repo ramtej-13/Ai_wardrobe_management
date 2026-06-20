@@ -1,9 +1,8 @@
-
 import os
 import sys
 import datetime
 from user import User
-from clothing import Clothing
+from wardrobe_item import WardrobeItem
 from wardrobe import Wardrobe
 from storage import save_wardrobe, load_wardrobe
 
@@ -96,10 +95,10 @@ def create_new_user() -> User:
     print(f"\n{CLR_SUCCESS}Profile created successfully!{CLR_RESET}")
     return User(name, age, gender, height, weight)
 
-def print_clothing_table(clothes_list):
-    """Prints a beautiful ASCII table of a list of Clothing objects."""
-    if not clothes_list:
-        print(f"{CLR_WARNING}No clothes to display.{CLR_RESET}")
+def print_item_table(items_list):
+    """Prints a beautiful ASCII table of a list of WardrobeItem objects."""
+    if not items_list:
+        print(f"{CLR_WARNING}No wardrobe items to display.{CLR_RESET}")
         return
 
     # Define table column formatting
@@ -111,32 +110,32 @@ def print_clothing_table(clothes_list):
     print(header_fmt.format("ID", "Name", "Category", "Color", "Added", "Image Path", "Description"))
     print(divider)
     
-    for c in clothes_list:
-        img_str = c.image_path if c.image_path else "None"
-        desc_str = c.description if c.description else "None"
+    for i in items_list:
+        img_str = i.image_path if i.image_path else "None"
+        desc_str = i.description if i.description else "None"
         # Truncate strings if they are too long to fit the columns
-        name_t = c.name[:20]
-        cat_t = c.category[:12]
-        col_t = c.color[:12]
+        name_t = i.name[:20]
+        cat_t = i.category[:12]
+        col_t = i.color[:12]
         img_t = img_str[:15]
         desc_t = desc_str[:25]
         
-        print(header_fmt.format(c.id, name_t, cat_t, col_t, c.date_added, img_t, desc_t))
+        print(header_fmt.format(i.id, name_t, cat_t, col_t, i.date_added, img_t, desc_t))
     print(divider)
 
 def print_wardrobe_summary(wardrobe: Wardrobe):
-    """Displays user profile, clothing table, and category counts."""
+    """Displays user profile, items table, and category counts."""
     # 1. Print User Profile
     u = wardrobe.user
     print(f"\n{CLR_BOLD}=== USER PROFILE ==={CLR_RESET}")
     print(f"{CLR_INFO}Name: {CLR_RESET}{u.name}  |  {CLR_INFO}Age: {CLR_RESET}{u.age}  |  {CLR_INFO}Gender: {CLR_RESET}{u.gender}  |  {CLR_INFO}Height: {CLR_RESET}{u.height} cm  |  {CLR_INFO}Weight: {CLR_RESET}{u.weight} kg")
     
-    # 2. Print Clothes Table
-    print(f"\n{CLR_BOLD}=== CLOTHING ITEMS ==={CLR_RESET}")
-    print_clothing_table(wardrobe.get_all_clothing())
+    # 2. Print Items Table
+    print(f"\n{CLR_BOLD}=== WARDROBE ITEMS ==={CLR_RESET}")
+    print_item_table(wardrobe.get_all_items())
     
     # 3. Print Category Counts
-    print(f"\n{CLR_BOLD}=== CLOTHING COUNTS ==={CLR_RESET}")
+    print(f"\n{CLR_BOLD}=== ITEM COUNTS BY CATEGORY ==={CLR_RESET}")
     counts = wardrobe.get_category_counts()
     if not counts:
         print(f"{CLR_WARNING}No categories to count.{CLR_RESET}")
@@ -146,26 +145,26 @@ def print_wardrobe_summary(wardrobe: Wardrobe):
 
 def main():
     # Attempt to load data
-    db_file = "wardrobe.json"
-    wardrobe = load_wardrobe(db_file)
+    db_identifier = "active_wardrobe"
+    wardrobe = load_wardrobe(db_identifier)
     
     if wardrobe is None or wardrobe.user is None:
-        # File doesn't exist or doesn't contain user info, create new profile
+        # User doesn't exist in DB, create new profile on startup
         user = create_new_user()
         wardrobe = Wardrobe(user)
-        # Suggest saving it right away
-        save_wardrobe(wardrobe, db_file)
+        # Save it right away
+        save_wardrobe(wardrobe, db_identifier)
     else:
         print_header("WARDROBE MANAGEMENT SYSTEM")
-        print(f"{CLR_SUCCESS}Successfully loaded wardrobe data for {CLR_BOLD}{wardrobe.user.name}{CLR_RESET}!")
+        print(f"{CLR_SUCCESS}Successfully loaded wardrobe data for {CLR_BOLD}{wardrobe.user.name}{CLR_RESET} from MongoDB Atlas!")
         
     while True:
         print_header("MAIN MENU")
-        print("1. Add Clothing")
-        print("2. Edit Clothing")
-        print("3. Remove Clothing")
+        print("1. Add Wardrobe Item")
+        print("2. Edit Wardrobe Item")
+        print("3. Remove Wardrobe Item")
         print("4. View Wardrobe")
-        print("5. Search Clothing")
+        print("5. Search Wardrobe Items")
         print("6. Save")
         print("7. Exit")
         print("=" * 60)
@@ -173,13 +172,13 @@ def main():
         choice = clean_input(f"{CLR_BOLD}Choose an option (1-7): {CLR_RESET}")
         
         if choice == "1":
-            print_header("ADD NEW CLOTHING")
-            name = clean_input(f"{CLR_BOLD}Enter Name (e.g. White Shirt): {CLR_RESET}")
+            print_header("ADD NEW ITEM")
+            name = clean_input(f"{CLR_BOLD}Enter Name (e.g. White Sneakers): {CLR_RESET}")
             if not name:
                 print(f"{CLR_ERROR}Name cannot be empty. Cancelled addition.{CLR_RESET}")
                 continue
                 
-            category = clean_input(f"{CLR_BOLD}Enter Category (e.g. Shirt, Pants, Shoes): {CLR_RESET}")
+            category = clean_input(f"{CLR_BOLD}Enter Category (e.g. Shirt, Pants, Shoes, Accessory): {CLR_RESET}")
             if not category:
                 print(f"{CLR_ERROR}Category cannot be empty. Cancelled addition.{CLR_RESET}")
                 continue
@@ -198,7 +197,7 @@ def main():
             if not date_added:
                 date_added = None
                 
-            item = wardrobe.add_clothing(
+            item = wardrobe.add_item(
                 name=name,
                 category=category,
                 color=color,
@@ -209,11 +208,11 @@ def main():
             print(f"\n{CLR_SUCCESS}Item added successfully! Assigned unique ID: {CLR_BOLD}{item.id}{CLR_RESET}")
             
         elif choice == "2":
-            print_header("EDIT CLOTHING ITEM")
-            clothing_id = clean_input(f"{CLR_BOLD}Enter Unique ID of the item to edit (e.g. C001): {CLR_RESET}").upper()
-            item = wardrobe.find_clothing_by_id(clothing_id)
+            print_header("EDIT WARDROBE ITEM")
+            item_id = clean_input(f"{CLR_BOLD}Enter Unique ID of the item to edit (e.g. C001): {CLR_RESET}").upper()
+            item = wardrobe.find_item_by_id(item_id)
             if not item:
-                print(f"{CLR_ERROR}Clothing item with ID {clothing_id} not found.{CLR_RESET}")
+                print(f"{CLR_ERROR}Wardrobe item with ID {item_id} not found.{CLR_RESET}")
                 continue
                 
             print(f"\n{CLR_INFO}Editing {CLR_BOLD}{item.name} ({item.id}){CLR_RESET}. Press {CLR_BOLD}Enter{CLR_RESET} to keep the current value.")
@@ -247,8 +246,8 @@ def main():
                 
             # Perform update
             # We convert empty string back to None for database storage
-            wardrobe.edit_clothing(
-                clothing_id=clothing_id,
+            wardrobe.edit_item(
+                item_id=item_id,
                 name=new_name,
                 category=new_cat,
                 color=new_col,
@@ -259,17 +258,17 @@ def main():
             print(f"\n{CLR_SUCCESS}Item updated successfully!{CLR_RESET}")
             
         elif choice == "3":
-            print_header("REMOVE CLOTHING ITEM")
-            clothing_id = clean_input(f"{CLR_BOLD}Enter Unique ID of the item to remove (e.g. C001): {CLR_RESET}").upper()
-            item = wardrobe.find_clothing_by_id(clothing_id)
+            print_header("REMOVE WARDROBE ITEM")
+            item_id = clean_input(f"{CLR_BOLD}Enter Unique ID of the item to remove (e.g. C001): {CLR_RESET}").upper()
+            item = wardrobe.find_item_by_id(item_id)
             if not item:
-                print(f"{CLR_ERROR}Clothing item with ID {clothing_id} not found.{CLR_RESET}")
+                print(f"{CLR_ERROR}Wardrobe item with ID {item_id} not found.{CLR_RESET}")
                 continue
                 
             print(f"\n{CLR_WARNING}Found item: {CLR_BOLD}{item.name} ({item.color} {item.category}){CLR_RESET}")
             confirm = clean_input(f"{CLR_BOLD}Are you sure you want to delete this item? (y/n): {CLR_RESET}").lower()
             if confirm == 'y':
-                wardrobe.remove_clothing(clothing_id)
+                wardrobe.remove_item(item_id)
                 print(f"{CLR_SUCCESS}Item removed from wardrobe.{CLR_RESET}")
             else:
                 print(f"{CLR_INFO}Deletion cancelled.{CLR_RESET}")
@@ -280,22 +279,22 @@ def main():
             clean_input(f"\n{CLR_INFO}Press Enter to return to main menu...{CLR_RESET}")
             
         elif choice == "5":
-            print_header("BASIC SEARCH")
+            print_header("SEARCH WARDROBE ITEMS")
             query = clean_input(f"{CLR_BOLD}Search: {CLR_RESET}")
             if not query:
                 print(f"{CLR_WARNING}Search query cannot be empty.{CLR_RESET}")
                 continue
                 
-            results = wardrobe.search_clothing(query)
+            results = wardrobe.search_items(query)
             print_header(f"SEARCH RESULTS FOR '{query.upper()}'")
-            print_clothing_table(results)
+            print_item_table(results)
             print(f"\n{CLR_INFO}Total matching items: {CLR_BOLD}{len(results)}{CLR_RESET}")
             clean_input(f"\n{CLR_INFO}Press Enter to return to main menu...{CLR_RESET}")
             
         elif choice == "6":
             print_header("SAVE WARDROBE DATA")
-            if save_wardrobe(wardrobe, db_file):
-                print(f"{CLR_SUCCESS}Wardrobe saved successfully to {CLR_BOLD}{db_file}{CLR_RESET}!")
+            if save_wardrobe(wardrobe, db_identifier):
+                print(f"{CLR_SUCCESS}Wardrobe saved successfully to MongoDB Atlas!{CLR_RESET}")
             else:
                 print(f"{CLR_ERROR}Failed to save wardrobe.{CLR_RESET}")
                 
@@ -304,8 +303,8 @@ def main():
             # Ask to save changes
             save_prompt = clean_input(f"{CLR_BOLD}Save changes before exiting? (y/n/cancel): {CLR_RESET}").lower()
             if save_prompt == 'y':
-                save_wardrobe(wardrobe, db_file)
-                print(f"{CLR_SUCCESS}Changes saved. Goodbye!{CLR_RESET}")
+                save_wardrobe(wardrobe, db_identifier)
+                print(f"{CLR_SUCCESS}Changes saved to MongoDB Atlas. Goodbye!{CLR_RESET}")
                 break
             elif save_prompt == 'n':
                 print(f"{CLR_INFO}Exiting without saving changes. Goodbye!{CLR_RESET}")
