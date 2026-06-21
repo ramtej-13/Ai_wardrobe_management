@@ -1,6 +1,8 @@
 # AI Wardrobe Management System
 
-A Python-based CLI application to manage a user profile and an automated clothing and footwear wardrobe, powered by **MongoDB Atlas** for secure, cloud-based data persistence.
+A Python-based application to manage a user profile and an automated clothing/footwear wardrobe, powered by **MongoDB Atlas** for secure, cloud-based data persistence.
+
+Exposes features as both a local colorized Command Line Interface (CLI) and a modern Web REST API (built with **FastAPI** and **Uvicorn**).
 
 ---
 
@@ -10,9 +12,11 @@ A Python-based CLI application to manage a user profile and an automated clothin
 - **Wardrobe Item Cataloging**: Add items (e.g. Shirts, Pants, Shoes, Accessories) with automatic sequential unique ID generation (`C001`, `C002`, etc.), categories, colors, descriptions, dates, and optional image paths.
 - **Smart Category Count**: Live counter showing items grouped by category (e.g. `Shirts: 5`, `Pants: 3`, `Shoes: 2`).
 - **Flexible Searching**: Perform case-insensitive search across names, categories, colors, or descriptions.
-- **Cloud Persistence**: Full integration with **MongoDB Atlas** using the `pymongo` library, allowing you to load and save your wardrobe securely in the cloud under a generalized `"items"` database array.
-- **Colorized Interactive Menu**: Aesthetic, user-friendly CLI terminal interface with clear headers and layouts.
-- **Integrated Test Suite**: Quick-run verification script testing all modules and database integration.
+- **Cloud Persistence**: Full integration with **MongoDB Atlas** using the `pymongo` library, allowing you to load and save your wardrobe securely in the cloud.
+- **Colorized Interactive CLI Menu**: Aesthetic, user-friendly console dashboard with tables and category counts.
+- **FastAPI Web Service**: Complete REST API wrapping all wardrobe features with automatic validation (using **Pydantic**).
+- **Interactive Swagger Documentation**: Visual UI playground at `/docs` to inspect and test all web endpoints.
+- **Dual Test Suites**: Automated tests validating both the Python logic (`verify_wardrobe.py`) and the Web API endpoints (`verify_api.py`).
 
 ---
 
@@ -21,12 +25,14 @@ A Python-based CLI application to manage a user profile and an automated clothin
 The project is modularized into dedicated, separate Python files:
 
 ```text
-├── user.py              # User class and deserialization methods
-├── wardrobe_item.py     # WardrobeItem class representing single wardrobe items
+├── user.py              # User class and dict serialization methods
+├── wardrobe_item.py     # WardrobeItem class representing single closet items
 ├── wardrobe.py          # Wardrobe collection and count/search logic
 ├── storage.py           # MongoDB connection utility and load/save functions
-├── main.py              # Application entrypoint hosting the interactive CLI
-├── verify_wardrobe.py   # Automated integration test suite
+├── main.py              # Application CLI entrypoint (Console Menu)
+├── app.py               # Application Web API entrypoint (FastAPI routes)
+├── verify_wardrobe.py   # Test suite for local classes and DB logic
+├── verify_api.py        # Test suite for Web API endpoints
 ├── config.json          # Credentials configuration (Git-ignored)
 └── README.md            # Project documentation (this file)
 ```
@@ -38,7 +44,7 @@ The project is modularized into dedicated, separate Python files:
 ### 1. Install Dependencies
 Make sure you have Python 3.10+ installed. Install the required Python packages:
 ```bash
-pip install pymongo dnspython certifi
+pip install pymongo dnspython certifi fastapi uvicorn
 ```
 
 ### 2. Configure Database Credentials
@@ -57,16 +63,33 @@ Paste your MongoDB Atlas connection string and replace `<db_password>` with your
 
 ## How to Run
 
-### Run the Application CLI
-Launch the main application interface:
+### 1. Run the Local CLI Application
+Launch the console menu interface:
 ```bash
 python main.py
 ```
-On your first run, the system will recognize there is no existing database document and will guide you to create your user profile. Subsequent runs will load your profile and wardrobe catalog automatically from the cloud.
 
-### Run Verification Tests
-To run the automated test suite and confirm that your database connection and operations work successfully:
+### 2. Run the FastAPI Web Server
+Start the local development server:
+```bash
+uvicorn app:app --reload
+```
+- Access the API at: `http://127.0.0.1:8000/`
+- Open the interactive Swagger API Docs playground: **`http://127.0.0.1:8000/docs`**
+
+---
+
+## Running Verification Tests
+
+The repository contains two automated test suites:
+
+### Test Python Core & DB Persistence
 ```bash
 python verify_wardrobe.py
 ```
-This script runs operations under a separate `test_wardrobe` document and automatically deletes it afterwards to keep your database clean.
+
+### Test FastAPI Web Endpoints
+```bash
+python verify_api.py
+```
+*(Both scripts use a temporary `"test_wardrobe"` document in the database and automatically clean up after execution).*
