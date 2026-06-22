@@ -139,8 +139,38 @@ def run_api_tests():
     assert "Shoes" not in res_data["category_counts"]
     print("Item deletion check passed.")
 
-    # 12. Cleanup database document
-    print("\n12. Cleaning up database test document...")
+    # 12. Test POST /items/upload (Image Upload & static serving)
+    print("\n12. Testing Image Upload Endpoint...")
+    import os
+    
+    # Mock file bytes and metadata
+    file_payload = {"file": ("test_pic.png", b"fake_image_bytes_here", "image/png")}
+    response = client.post("/items/upload", files=file_payload)
+    assert response.status_code == 200
+    res_data = response.json()
+    assert "image_url" in res_data
+    assert "filename" in res_data
+    
+    filename = res_data["filename"]
+    local_path = os.path.join("static", "uploads", filename)
+    
+    # Assert file exists on disk
+    assert os.path.exists(local_path)
+    print(f"File successfully created locally at: {local_path}")
+    
+    # Assert static file routing works via test client
+    static_response = client.get(f"/static/uploads/{filename}")
+    assert static_response.status_code == 200
+    assert static_response.content == b"fake_image_bytes_here"
+    print("Static file serving verified.")
+    
+    # Cleanup physical file on disk
+    os.remove(local_path)
+    assert not os.path.exists(local_path)
+    print("Local test file cleaned up from static folder.")
+
+    # 13. Cleanup database document
+    print("\n13. Cleaning up database test document...")
     mongo_client = get_mongo_client()
     db = mongo_client["wardrobe_db"]
     collection = db["wardrobes"]

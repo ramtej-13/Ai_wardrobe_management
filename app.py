@@ -1,4 +1,8 @@
-from fastapi import FastAPI, HTTPException, status
+import os
+import uuid
+import shutil
+from fastapi import FastAPI, HTTPException, status, File, UploadFile, Request
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from user import User
@@ -11,6 +15,10 @@ app = FastAPI(
     description="Web REST API to manage user profiles, catalog wardrobe items, search, and count items using MongoDB Atlas.",
     version="1.0.0"
 )
+
+# Mount static files directory to serve uploaded images via web URLs
+os.makedirs(os.path.join("static", "uploads"), exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Document identifier constant
 DB_IDENTIFIER = "active_wardrobe"
@@ -216,3 +224,44 @@ def search_wardrobe_items(q: str):
         "matches_count": len(results),
         "results": [item.to_dict() for item in results]
     }
+
+@app.post("/items/upload", tags=["Wardrobe Items"])
+def upload_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
+    """
+    Uploads an image file (JPEG, PNG, WEBP) to the server.
+    Returns the dynamic web URL where the image is served.
+    """
+    # 1. Validate file extension
+    original_filename = file.filename
+    ext = original_filename.split(".")[-1].lower() if "." in original_filename else ""
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported file format. Only JPG, JPEG, PNG, and WEBP image formats are allowed."
+        )
+
+    # 2. Generate a secure, unique filename to avoid collision
+    unique_filename = f"{uuid.uuid4()}.{ext}"
+    upload_dir = os.path.join("static", "uploads")
+    file_path = os.path.join(upload_dir, unique_filename)
+
+    # 3. Save the file to the local uploads directory
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while saving the file: {str(e)}"
+        )
+
+    # 4. Generate the dynamic public URL
+    base_url = str(request.base_url)
+    image_url = f"{base_url}static/uploads/{unique_filename}"
+
+    return {
+        "message": "Image uploaded successfully!",
+        "image_url": image_url,
+        "filename": unique_filename
+    }
+
