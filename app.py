@@ -363,9 +363,15 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
                 os.remove(file_path)
             except Exception:
                 pass
+        err_msg = str(e)
+        if "429" in err_msg or "ResourceExhausted" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit exceeded (Free tier allows 5 requests/minute). Please wait a few seconds before trying again."
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Gemini image analysis failed: {str(e)}"
+            detail=f"Gemini image analysis failed: {err_msg}"
         )
 
     # 6. Generate the dynamic public URL
