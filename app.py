@@ -1,6 +1,9 @@
 import os
 import uuid
 import shutil
+import json
+from PIL import Image
+import google.generativeai as genai
 from fastapi import FastAPI, HTTPException, status, File, UploadFile, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -19,6 +22,20 @@ app = FastAPI(
 # Mount static files directory to serve uploaded images via web URLs
 os.makedirs(os.path.join("static", "uploads"), exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Load Gemini API key from config.json
+CONFIG_FILE = "config.json"
+gemini_key = None
+if os.path.exists(CONFIG_FILE):
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            config = json.load(f)
+            gemini_key = config.get("gemini_api_key")
+    except Exception as e:
+        print(f"Error reading Gemini key from config: {e}")
+
+if gemini_key:
+    genai.configure(api_key=gemini_key)
 
 # Document identifier constant
 DB_IDENTIFIER = "active_wardrobe"
@@ -264,4 +281,102 @@ def upload_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
         "image_url": image_url,
         "filename": unique_filename
     }
+
+
+def parse_gemini_json(text: str) -> dict:
+    import re
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", cleaned, re.DOTALL)
+        if match:
+            cleaned = match.group(1).strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        raise ValueError(f"Failed to parse JSON from Gemini response: {text}")
+
+
+@app.post("/items/analyze", tags=["Wardrobe Items"])
+def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
+    """
+    Uploads an image file, saves it, runs it through Gemini 2.5 Flash to automatically
+    detect Category, Color, and a detailed Description, and returns these details.
+    """
+    # 1. Ensure Gemini is configured
+    global gemini_key
+    if not gemini_key:
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    gemini_key = config.get("gemini_api_key")
+            except Exception as e:
+                print(f"Error reading Gemini key from config: {e}")
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
+
+    if not gemini_key:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Gemini API Key is not configured in config.json. Please add your key first."
+        )
+
+    # 2. Validate file extension
+    original_filename = file.filename
+    ext = original_filename.split(".")[-1].lower() if "." in original_filename else ""
+    if ext not in ["jpg", "jpeg", "png", "webp"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported file format. Only JPG, JPEG, PNG, and WEBP image formats are allowed."
+        )
+
+    # 3. Generate a secure, unique filename to avoid collision
+    unique_filename = f"{uuid.uuid4()}.{ext}"
+    upload_dir = os.path.join("static", "uploads")
+    file_path = os.path.join(upload_dir, unique_filename)
+
+    # 4. Save the file to the local uploads directory
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while saving the file: {str(e)}"
+        )
+
+    # 5. Use Gemini to analyze the image
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        with Image.open(file_path) as img:
+            prompt = (
+                "Analyze the uploaded wardrobe item image. Return a JSON object with the following fields: "
+                "'category' (e.g. Shirt, Pants, Shoes, Dress, Jacket, Accessory), 'color' (primary color), "
+                "and 'description' (a detailed fashion-oriented description describing fabric, fit, pattern, and sleeve type if applicable). "
+                "Keep the JSON clean and do not wrap it in markdown tags."
+            )
+            response = model.generate_content([prompt, img])
+        analysis = parse_gemini_json(response.text)
+    except Exception as e:
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception:
+                pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Gemini image analysis failed: {str(e)}"
+        )
+
+    # 6. Generate the dynamic public URL
+    base_url = str(request.base_url)
+    image_url = f"{base_url}static/uploads/{unique_filename}"
+
+    return {
+        "category": analysis.get("category", ""),
+        "color": analysis.get("color", ""),
+        "description": analysis.get("description", ""),
+        "image_path": image_url
+    }
+
 

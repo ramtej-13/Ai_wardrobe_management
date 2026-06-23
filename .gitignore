@@ -6,3 +6,4 @@ __pycache__/
 *.json.bak
 config.json
 notes.txt
+static/uploads/

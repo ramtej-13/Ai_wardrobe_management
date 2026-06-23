@@ -169,8 +169,44 @@ def run_api_tests():
     assert not os.path.exists(local_path)
     print("Local test file cleaned up from static folder.")
 
-    # 13. Cleanup database document
-    print("\n13. Cleaning up database test document...")
+    # 13. Test POST /items/analyze (Gemini Vision integration)
+    print("\n13. Testing Image Analysis Endpoint (Gemini Integration)...")
+    from io import BytesIO
+    from PIL import Image
+    
+    # Generate 100x100 solid red image in memory
+    img = Image.new("RGB", (100, 100), color="red")
+    img_byte_arr = BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    img_bytes = img_byte_arr.getvalue()
+    
+    file_payload = {"file": ("red_shirt_test.jpg", img_bytes, "image/jpeg")}
+    response = client.post("/items/analyze", files=file_payload)
+    assert response.status_code == 200
+    res_data = response.json()
+    
+    assert "category" in res_data
+    assert "color" in res_data
+    assert "description" in res_data
+    assert "image_path" in res_data
+    
+    # Print the analysis results for logging
+    print("Gemini image analysis returned:")
+    print(f"  Category: {res_data['category']}")
+    print(f"  Color: {res_data['color']}")
+    print(f"  Description: {res_data['description']}")
+    print(f"  Image Path: {res_data['image_path']}")
+    
+    # Verify the image was saved on disk and can be retrieved, then cleanup
+    image_url = res_data["image_path"]
+    filename = image_url.split("/")[-1]
+    test_local_path = os.path.join("static", "uploads", filename)
+    assert os.path.exists(test_local_path)
+    os.remove(test_local_path)
+    print("Analysis test file cleaned up from static folder.")
+
+    # 14. Cleanup database document
+    print("\n14. Cleaning up database test document...")
     mongo_client = get_mongo_client()
     db = mongo_client["wardrobe_db"]
     collection = db["wardrobes"]
