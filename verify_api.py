@@ -118,7 +118,7 @@ def run_api_tests():
     response = client.get("/wardrobe/analytics")
     assert response.status_code == 200
     res_data = response.json()
-    assert res_data["total_clothes"] == 2
+    assert res_data["total_items"] == 2
     assert res_data["category_counts"]["Shirt"] == 1
     assert res_data["category_counts"]["Shoes"] == 1
     assert res_data["most_common_color"] in ["White", "Black"]

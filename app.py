@@ -408,7 +408,7 @@ def get_wardrobe_analytics():
     """
     wardrobe = get_wardrobe_or_error(enforce_user=True)
     items = wardrobe.get_all_items()
-    total_clothes = len(items)
+    total_items = len(items)
     
     category_counts = wardrobe.get_category_counts()
     
@@ -424,7 +424,7 @@ def get_wardrobe_analytics():
         most_common_color = max(color_counts, key=color_counts.get)
         
     return {
-        "total_clothes": total_clothes,
+        "total_items": total_items,
         "category_counts": category_counts,
         "most_common_color": most_common_color
     }
