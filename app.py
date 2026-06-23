@@ -386,3 +386,47 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
     }
 
 
+@app.get("/wardrobe", tags=["Wardrobe Items"])
+def get_wardrobe_dashboard():
+    """
+    Retrieves all wardrobe items grouped by their categories.
+    """
+    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    grouped = {}
+    for item in wardrobe.get_all_items():
+        cat = item.category.strip().capitalize() if item.category else "Uncategorized"
+        if cat not in grouped:
+            grouped[cat] = []
+        grouped[cat].append(item.to_dict())
+    return grouped
+
+
+@app.get("/wardrobe/analytics", tags=["Wardrobe Items"])
+def get_wardrobe_analytics():
+    """
+    Calculates wardrobe analytics: total clothes, category breakdown, and most common color.
+    """
+    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    items = wardrobe.get_all_items()
+    total_clothes = len(items)
+    
+    category_counts = wardrobe.get_category_counts()
+    
+    # Calculate most common color
+    color_counts = {}
+    for item in items:
+        if item.color:
+            color = item.color.strip().capitalize()
+            color_counts[color] = color_counts.get(color, 0) + 1
+            
+    most_common_color = None
+    if color_counts:
+        most_common_color = max(color_counts, key=color_counts.get)
+        
+    return {
+        "total_clothes": total_clothes,
+        "category_counts": category_counts,
+        "most_common_color": most_common_color
+    }
+
+

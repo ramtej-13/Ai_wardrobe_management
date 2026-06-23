@@ -100,6 +100,30 @@ def run_api_tests():
     assert len(res_data["items"]) == 2
     print("GET /items wardrobe view passed.")
 
+    # 7a. Test GET /wardrobe (Dashboard Grouped by Category)
+    print("\n7a. Testing GET /wardrobe (Grouped Category Dashboard)...")
+    response = client.get("/wardrobe")
+    assert response.status_code == 200
+    res_data = response.json()
+    assert "Shirt" in res_data
+    assert "Shoes" in res_data
+    assert len(res_data["Shirt"]) == 1
+    assert len(res_data["Shoes"]) == 1
+    assert res_data["Shirt"][0]["id"] == "C001"
+    assert res_data["Shoes"][0]["id"] == "C002"
+    print("GET /wardrobe category grouping dashboard verified successfully.")
+
+    # 7b. Test GET /wardrobe/analytics (Wardrobe Analytics)
+    print("\n7b. Testing GET /wardrobe/analytics...")
+    response = client.get("/wardrobe/analytics")
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["total_clothes"] == 2
+    assert res_data["category_counts"]["Shirt"] == 1
+    assert res_data["category_counts"]["Shoes"] == 1
+    assert res_data["most_common_color"] in ["White", "Black"]
+    print("GET /wardrobe/analytics successfully verified.")
+
     # 8. Test GET /items/search (Search query)
     print("\n8. Testing GET /items/search...")
     response = client.get("/items/search?q=White")
