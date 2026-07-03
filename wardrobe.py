@@ -18,7 +18,7 @@ class Wardrobe:
         """Generates the next unique ID string, e.g., C001, C002."""
         return f"C{self.next_id_num:03d}"
 
-    def add_item(self, name: str, category: str, color: str, description: str, image_path: str = None, date_added: str = None) -> WardrobeItem:
+    def add_item(self, name: str, category: str, color: str, description: str, fit: str = "", image_path: str = None, date_added: str = None) -> WardrobeItem:
         """
         Creates and adds a new wardrobe item with a unique ID.
         
@@ -27,6 +27,7 @@ class Wardrobe:
             category (str): Category (e.g. Shirt, Pants, Shoes).
             color (str): Color of the item.
             description (str): Description or details.
+            fit (str): Fit of the item (e.g. Slim, Regular, Oversized).
             image_path (str, optional): Path to the image. Defaults to None.
             date_added (str, optional): Date when added. Defaults to today's date (YYYY-MM-DD).
             
@@ -46,12 +47,13 @@ class Wardrobe:
             color=color,
             description=description,
             date_added=date_added,
+            fit=fit,
             image_path=image_path
         )
         self.items.append(new_item)
         return new_item
 
-    def edit_item(self, item_id: str, name: str = None, category: str = None, color: str = None, description: str = None, image_path: str = None, date_added: str = None) -> bool:
+    def edit_item(self, item_id: str, name: str = None, category: str = None, color: str = None, description: str = None, fit: str = None, image_path: str = None, date_added: str = None) -> bool:
         """
         Edits fields of a wardrobe item by its unique ID.
         Only fields that are not None will be updated.
@@ -74,6 +76,8 @@ class Wardrobe:
             item.color = color
         if description is not None:
             item.description = description
+        if fit is not None:
+            item.fit = fit
         if image_path is not None:
             item.image_path = image_path
         if date_added is not None:

@@ -64,6 +64,7 @@ def run_api_tests():
         "category": "Shirt",
         "color": "White",
         "description": "Formal oxford cotton shirt",
+        "fit": "Regular",
         "date_added": "2026-06-20"
     }
     response = client.post("/items", json=item1_payload)
@@ -80,6 +81,7 @@ def run_api_tests():
         "category": "Shoes",
         "color": "Black",
         "description": "Running sneakers",
+        "fit": "Regular",
         "date_added": "2026-06-21"
     }
     response = client.post("/items", json=item2_payload)
@@ -218,6 +220,9 @@ def run_api_tests():
     assert "description" in res_data
     assert "value" in res_data["description"]
     assert "confidence" in res_data["description"]
+    assert "fit" in res_data
+    assert "value" in res_data["fit"]
+    assert "confidence" in res_data["fit"]
     assert "image_path" in res_data
     
     # Print the analysis results for logging
@@ -225,6 +230,7 @@ def run_api_tests():
     print(f"  Category: {res_data['category']['value']} (Confidence: {res_data['category']['confidence']})")
     print(f"  Color: {res_data['color']['value']} (Confidence: {res_data['color']['confidence']})")
     print(f"  Description: {res_data['description']['value']} (Confidence: {res_data['description']['confidence']})")
+    print(f"  Fit: {res_data['fit']['value']} (Confidence: {res_data['fit']['confidence']})")
     print(f"  Image Path: {res_data['image_path']}")
     
     # Verify the image was saved on disk and can be retrieved, then cleanup
@@ -345,8 +351,41 @@ def run_api_tests():
     assert retrieved_user["estimated_height"] == res_data['estimated_height']['value']
     print("Profile save and load with AI attributes verified successfully.")
 
-    # 16. Cleanup database document
-    print("\n16. Cleaning up database test document...")
+    # 16. Test POST /recommend (Outfit Recommendation Engine V1)
+    print("\n16. Testing Outfit Recommendation Engine V1...")
+    rec_payload = {
+        "occasion": "College"
+    }
+    response = client.post("/recommend", json=rec_payload)
+    assert response.status_code == 200
+    rec_data = response.json()
+    
+    assert "top" in rec_data
+    assert "bottom" in rec_data
+    assert "shoes" in rec_data
+    assert "reason" in rec_data
+    
+    print("Outfit recommendation returned:")
+    if rec_data['top']:
+        print(f"  Top: {rec_data['top']['name']} (ID: {rec_data['top']['id']})")
+    else:
+        print("  Top: None")
+        
+    if rec_data['bottom']:
+        print(f"  Bottom: {rec_data['bottom']['name']} (ID: {rec_data['bottom']['id']})")
+    else:
+        print("  Bottom: None")
+        
+    if rec_data['shoes']:
+        print(f"  Shoes: {rec_data['shoes']['name']} (ID: {rec_data['shoes']['id']})")
+    else:
+        print("  Shoes: None")
+        
+    print(f"  Reason:\n{rec_data['reason']}")
+    print("Outfit Recommendation Engine verified successfully.")
+
+    # 17. Cleanup database document
+    print("\n17. Cleaning up database test document...")
     mongo_client = get_mongo_client()
     db = mongo_client["wardrobe_db"]
     collection = db["wardrobes"]

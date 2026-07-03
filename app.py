@@ -65,6 +65,7 @@ class ItemCreateSchema(BaseModel):
     category: str
     color: str
     description: Optional[str] = ""
+    fit: Optional[str] = ""
     image_path: Optional[str] = None
     date_added: Optional[str] = None
 
@@ -73,8 +74,13 @@ class ItemEditSchema(BaseModel):
     category: Optional[str] = None
     color: Optional[str] = None
     description: Optional[str] = None
+    fit: Optional[str] = None
     image_path: Optional[str] = None
     date_added: Optional[str] = None
+
+
+class RecommendationRequest(BaseModel):
+    occasion: str
 
 
 # Helpers
@@ -185,6 +191,7 @@ def add_wardrobe_item(item_data: ItemCreateSchema):
         category=item_data.category,
         color=item_data.color,
         description=item_data.description,
+        fit=item_data.fit,
         image_path=item_data.image_path,
         date_added=item_data.date_added
     )
@@ -218,6 +225,7 @@ def edit_wardrobe_item(item_id: str, edit_data: ItemEditSchema):
         category=edit_data.category,
         color=edit_data.color,
         description=edit_data.description,
+        fit=edit_data.fit,
         image_path=edit_data.image_path,
         date_added=edit_data.date_added
     )
@@ -390,7 +398,8 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
                 "The fields to return are:\n"
                 "- 'category' (e.g. Shirt, Pants, Shoes, Dress, Jacket, Accessory)\n"
                 "- 'color' (primary color)\n"
-                "- 'description' (a detailed fashion-oriented description describing fabric, fit, pattern, and sleeve type if applicable)\n\n"
+                "- 'description' (a detailed fashion-oriented description describing fabric, pattern, and sleeve type if applicable)\n"
+                "- 'fit' (e.g. Slim, Regular, Loose, Oversized, Tailored)\n\n"
                 "Keep the JSON clean and do not wrap it in markdown tags."
             )
             response = model.generate_content([prompt, img])
@@ -420,6 +429,7 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
         "category": get_nested_attribute(analysis, "category"),
         "color": get_nested_attribute(analysis, "color"),
         "description": get_nested_attribute(analysis, "description"),
+        "fit": get_nested_attribute(analysis, "fit"),
         "image_path": image_url
     }
 
@@ -600,6 +610,135 @@ def analyze_user_profile_photos(
         "face_shape": get_nested_attribute(analysis, "face_shape"),
         "facial_hair": get_nested_attribute(analysis, "facial_hair"),
         "estimated_height": get_nested_attribute(analysis, "estimated_height")
+    }
+
+
+@app.post("/recommend", tags=["Outfit Recommendations"])
+def recommend_outfit(req: RecommendationRequest):
+    """
+    Recommends a styled outfit (top, bottom, shoes) from the user's wardrobe items
+    matching the user's physical profile characteristics and a target occasion.
+    """
+    # 1. Load active wardrobe and verify user profile exists
+    wardrobe = load_wardrobe(DB_IDENTIFIER)
+    if not wardrobe or not wardrobe.user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User profile has not been created yet. Please set up a user profile first."
+        )
+
+    # 2. Check that the wardrobe contains items
+    if not wardrobe.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your wardrobe is empty. Please add some items to your wardrobe first."
+        )
+
+    # 3. Securely check and configure Gemini API key
+    global gemini_key
+    if not gemini_key:
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    gemini_key = config.get("gemini_api_key")
+            except Exception as e:
+                print(f"Error reading Gemini key: {e}")
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
+
+    if not gemini_key:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Gemini API Key is not configured. Please add your key first."
+        )
+
+    # 4. Format user profile context
+    user = wardrobe.user
+    profile_summary = (
+        f"Gender: {user.gender}, Age: {user.age}, Preferred Style: {user.preferred_style or 'Not specified'}, "
+        f"Location: {user.location or 'Not specified'}, Budget: {user.budget or 'Not specified'}, "
+        f"Occupation: {user.occupation or 'Not specified'}. "
+        f"AI Physical Profile: Body Type: {user.body_type or 'Unknown'}, Body Build: {user.body_build or 'Unknown'}, "
+        f"Skin Tone: {user.skin_tone or 'Unknown'}, Undertone: {user.undertone or 'Unknown'}, "
+        f"Hair Color: {user.hair_color or 'Unknown'}, Face Shape: {user.face_shape or 'Unknown'}, "
+        f"Facial Hair: {user.facial_hair or 'Unknown'}, Height: {user.estimated_height or 'Unknown'}."
+    )
+
+    # 5. Format items list context
+    items_list = []
+    for item in wardrobe.items:
+        items_list.append({
+            "id": item.id,
+            "name": item.name,
+            "category": item.category,
+            "color": item.color,
+            "description": item.description,
+            "fit": item.fit
+        })
+
+    # 6. Call Gemini model for styling recommendation
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        prompt = (
+            "You are a professional fashion stylist. Your task is to recommend a styled outfit combining "
+            "exactly one top (e.g. Shirt, T-shirt, Sweatshirt, Jacket), one bottom (e.g. Pants, Cargo, Jeans, Shorts, Skirt), "
+            "and one shoes item from the user's actual wardrobe items. You must choose items ONLY from the provided list.\n\n"
+            f"User Profile Summary:\n{profile_summary}\n\n"
+            f"Target Occasion: {req.occasion}\n\n"
+            f"User's Wardrobe Items:\n{json.dumps(items_list, indent=2)}\n\n"
+            "Rules:\n"
+            "1. Select items that make the most cohesive, color-harmonious, and occasion-appropriate outfit.\n"
+            "2. Under 'reason', provide bullet points describing how the selections match the occasion, the user's styling preferences, physical features (e.g., skin undertone, body type), and garment fits (e.g., pairing slim-fit items with relaxed-fit items appropriately).\n"
+            "3. Only select from existing items. If no items match a category (e.g., no shoes are in the wardrobe), return null for that category ID.\n\n"
+            "Return a JSON object in this format:\n"
+            "{\n"
+            "  \"top_id\": \"selected_top_item_id_or_null\",\n"
+            "  \"bottom_id\": \"selected_bottom_item_id_or_null\",\n"
+            "  \"shoes_id\": \"selected_shoes_item_id_or_null\",\n"
+            "  \"reason\": \"• Bullet point 1\\n• Bullet point 2\"\n"
+            "}\n\n"
+            "Do not return markdown tags, return only the raw JSON object."
+        )
+        response = model.generate_content(prompt)
+        rec_data = parse_gemini_json(response.text)
+    except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "ResourceExhausted" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit exceeded. Please wait a few seconds before trying again."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Recommendation engine failed: {err_msg}"
+        )
+
+    # 7. Map recommended IDs back to complete items
+    top_item = wardrobe.find_item_by_id(rec_data.get("top_id")) if rec_data.get("top_id") else None
+    bottom_item = wardrobe.find_item_by_id(rec_data.get("bottom_id")) if rec_data.get("bottom_id") else None
+    shoes_item = wardrobe.find_item_by_id(rec_data.get("shoes_id")) if rec_data.get("shoes_id") else None
+
+    # Helper serializer
+    def serialize_item(item_id, item_obj):
+        if not item_obj:
+            return None
+        return {
+            "id": item_id,
+            "name": item_obj.name,
+            "category": item_obj.category,
+            "color": item_obj.color,
+            "description": item_obj.description,
+            "fit": item_obj.fit,
+            "image_path": item_obj.image_path,
+            "date_added": item_obj.date_added
+        }
+
+    return {
+        "top": serialize_item(rec_data.get("top_id"), top_item),
+        "bottom": serialize_item(rec_data.get("bottom_id"), bottom_item),
+        "shoes": serialize_item(rec_data.get("shoes_id"), shoes_item),
+        "reason": rec_data.get("reason") or "No reason provided."
     }
 
 

@@ -1,5 +1,5 @@
 class WardrobeItem:
-    def __init__(self, item_id: str, name: str, category: str, color: str, description: str, date_added: str, image_path: str = None):
+    def __init__(self, item_id: str, name: str, category: str, color: str, description: str, date_added: str, fit: str = "", image_path: str = None):
         """
         Initializes a Wardrobe item.
         
@@ -10,6 +10,7 @@ class WardrobeItem:
             color (str): Color of the item.
             description (str): Description or notes.
             date_added (str): Date added (format YYYY-MM-DD).
+            fit (str): Fit of the item (e.g. Slim, Regular, Loose, Oversized, Tailored).
             image_path (str, optional): File path to the item image. Defaults to None.
         """
         self.id = item_id
@@ -18,6 +19,7 @@ class WardrobeItem:
         self.color = color
         self.description = description
         self.date_added = date_added
+        self.fit = fit
         self.image_path = image_path
 
     def to_dict(self) -> dict:
@@ -29,6 +31,7 @@ class WardrobeItem:
             "color": self.color,
             "description": self.description,
             "date_added": self.date_added,
+            "fit": self.fit,
             "image_path": self.image_path
         }
 
@@ -42,5 +45,6 @@ class WardrobeItem:
             color=data["color"],
             description=data["description"],
             date_added=data["date_added"],
+            fit=data.get("fit", ""),
             image_path=data.get("image_path")
         )
