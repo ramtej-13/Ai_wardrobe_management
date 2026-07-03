@@ -210,15 +210,21 @@ def run_api_tests():
     res_data = response.json()
     
     assert "category" in res_data
+    assert "value" in res_data["category"]
+    assert "confidence" in res_data["category"]
     assert "color" in res_data
+    assert "value" in res_data["color"]
+    assert "confidence" in res_data["color"]
     assert "description" in res_data
+    assert "value" in res_data["description"]
+    assert "confidence" in res_data["description"]
     assert "image_path" in res_data
     
     # Print the analysis results for logging
     print("Gemini image analysis returned:")
-    print(f"  Category: {res_data['category']}")
-    print(f"  Color: {res_data['color']}")
-    print(f"  Description: {res_data['description']}")
+    print(f"  Category: {res_data['category']['value']} (Confidence: {res_data['category']['confidence']})")
+    print(f"  Color: {res_data['color']['value']} (Confidence: {res_data['color']['confidence']})")
+    print(f"  Description: {res_data['description']['value']} (Confidence: {res_data['description']['confidence']})")
     print(f"  Image Path: {res_data['image_path']}")
     
     # Verify the image was saved on disk and can be retrieved, then cleanup
@@ -260,23 +266,39 @@ def run_api_tests():
     res_data = response.json()
     
     assert "body_type" in res_data
+    assert "value" in res_data["body_type"]
+    assert "confidence" in res_data["body_type"]
     assert "body_build" in res_data
+    assert "value" in res_data["body_build"]
+    assert "confidence" in res_data["body_build"]
     assert "skin_tone" in res_data
+    assert "value" in res_data["skin_tone"]
+    assert "confidence" in res_data["skin_tone"]
     assert "undertone" in res_data
+    assert "value" in res_data["undertone"]
+    assert "confidence" in res_data["undertone"]
     assert "hair_color" in res_data
+    assert "value" in res_data["hair_color"]
+    assert "confidence" in res_data["hair_color"]
     assert "face_shape" in res_data
+    assert "value" in res_data["face_shape"]
+    assert "confidence" in res_data["face_shape"]
     assert "facial_hair" in res_data
+    assert "value" in res_data["facial_hair"]
+    assert "confidence" in res_data["facial_hair"]
     assert "estimated_height" in res_data
+    assert "value" in res_data["estimated_height"]
+    assert "confidence" in res_data["estimated_height"]
     
     print("Gemini profile analysis returned:")
-    print(f"  Body Type: {res_data['body_type']}")
-    print(f"  Body Build: {res_data['body_build']}")
-    print(f"  Skin Tone: {res_data['skin_tone']}")
-    print(f"  Undertone: {res_data['undertone']}")
-    print(f"  Hair Color: {res_data['hair_color']}")
-    print(f"  Face Shape: {res_data['face_shape']}")
-    print(f"  Facial Hair: {res_data['facial_hair']}")
-    print(f"  Estimated Height: {res_data['estimated_height']}")
+    print(f"  Body Type: {res_data['body_type']['value']} (Confidence: {res_data['body_type']['confidence']})")
+    print(f"  Body Build: {res_data['body_build']['value']} (Confidence: {res_data['body_build']['confidence']})")
+    print(f"  Skin Tone: {res_data['skin_tone']['value']} (Confidence: {res_data['skin_tone']['confidence']})")
+    print(f"  Undertone: {res_data['undertone']['value']} (Confidence: {res_data['undertone']['confidence']})")
+    print(f"  Hair Color: {res_data['hair_color']['value']} (Confidence: {res_data['hair_color']['confidence']})")
+    print(f"  Face Shape: {res_data['face_shape']['value']} (Confidence: {res_data['face_shape']['confidence']})")
+    print(f"  Facial Hair: {res_data['facial_hair']['value']} (Confidence: {res_data['facial_hair']['confidence']})")
+    print(f"  Estimated Height: {res_data['estimated_height']['value']} (Confidence: {res_data['estimated_height']['confidence']})")
     print("Profile photo analysis verified successfully.")
 
     # 15. Test POST /user and GET /user with detailed AI profile attributes
@@ -291,14 +313,14 @@ def run_api_tests():
         "budget": "Mid",
         "preferred_style": "Casual/Streetwear",
         "occupation": "Student",
-        "body_type": res_data['body_type'],
-        "body_build": res_data['body_build'],
-        "skin_tone": res_data['skin_tone'],
-        "undertone": res_data['undertone'],
-        "hair_color": res_data['hair_color'],
-        "face_shape": res_data['face_shape'],
-        "facial_hair": res_data['facial_hair'],
-        "estimated_height": res_data['estimated_height']
+        "body_type": res_data['body_type']['value'],
+        "body_build": res_data['body_build']['value'],
+        "skin_tone": res_data['skin_tone']['value'],
+        "undertone": res_data['undertone']['value'],
+        "hair_color": res_data['hair_color']['value'],
+        "face_shape": res_data['face_shape']['value'],
+        "facial_hair": res_data['facial_hair']['value'],
+        "estimated_height": res_data['estimated_height']['value']
     }
     # Update profile
     response = client.post("/user", json=detailed_user_payload)
@@ -313,14 +335,14 @@ def run_api_tests():
     assert retrieved_user["budget"] == "Mid"
     assert retrieved_user["preferred_style"] == "Casual/Streetwear"
     assert retrieved_user["occupation"] == "Student"
-    assert retrieved_user["body_type"] == res_data['body_type']
-    assert retrieved_user["body_build"] == res_data['body_build']
-    assert retrieved_user["skin_tone"] == res_data['skin_tone']
-    assert retrieved_user["undertone"] == res_data['undertone']
-    assert retrieved_user["hair_color"] == res_data['hair_color']
-    assert retrieved_user["face_shape"] == res_data['face_shape']
-    assert retrieved_user["facial_hair"] == res_data['facial_hair']
-    assert retrieved_user["estimated_height"] == res_data['estimated_height']
+    assert retrieved_user["body_type"] == res_data['body_type']['value']
+    assert retrieved_user["body_build"] == res_data['body_build']['value']
+    assert retrieved_user["skin_tone"] == res_data['skin_tone']['value']
+    assert retrieved_user["undertone"] == res_data['undertone']['value']
+    assert retrieved_user["hair_color"] == res_data['hair_color']['value']
+    assert retrieved_user["face_shape"] == res_data['face_shape']['value']
+    assert retrieved_user["facial_hair"] == res_data['facial_hair']['value']
+    assert retrieved_user["estimated_height"] == res_data['estimated_height']['value']
     print("Profile save and load with AI attributes verified successfully.")
 
     # 16. Cleanup database document

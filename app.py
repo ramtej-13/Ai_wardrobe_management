@@ -320,6 +320,16 @@ def parse_gemini_json(text: str) -> dict:
         raise ValueError(f"Failed to parse JSON from Gemini response: {text}")
 
 
+def get_nested_attribute(data: dict, key: str) -> dict:
+    val = data.get(key)
+    if isinstance(val, dict):
+        return {
+            "value": val.get("value") or "",
+            "confidence": float(val.get("confidence")) if val.get("confidence") is not None else 0.0
+        }
+    return {"value": val or "", "confidence": 0.0}
+
+
 @app.post("/items/analyze", tags=["Wardrobe Items"])
 def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
     """
@@ -374,9 +384,13 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
         model = genai.GenerativeModel("gemini-2.5-flash")
         with Image.open(file_path) as img:
             prompt = (
-                "Analyze the uploaded wardrobe item image. Return a JSON object with the following fields: "
-                "'category' (e.g. Shirt, Pants, Shoes, Dress, Jacket, Accessory), 'color' (primary color), "
-                "and 'description' (a detailed fashion-oriented description describing fabric, fit, pattern, and sleeve type if applicable). "
+                "Analyze the uploaded wardrobe item image. "
+                "Return a JSON object where each field contains a 'value' (the detected string) "
+                "and a 'confidence' (an estimated confidence score as a decimal between 0.0 and 1.0, e.g., 0.95). "
+                "The fields to return are:\n"
+                "- 'category' (e.g. Shirt, Pants, Shoes, Dress, Jacket, Accessory)\n"
+                "- 'color' (primary color)\n"
+                "- 'description' (a detailed fashion-oriented description describing fabric, fit, pattern, and sleeve type if applicable)\n\n"
                 "Keep the JSON clean and do not wrap it in markdown tags."
             )
             response = model.generate_content([prompt, img])
@@ -403,9 +417,9 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
     image_url = f"{base_url}static/uploads/{unique_filename}"
 
     return {
-        "category": analysis.get("category") or "",
-        "color": analysis.get("color") or "",
-        "description": analysis.get("description") or "",
+        "category": get_nested_attribute(analysis, "category"),
+        "color": get_nested_attribute(analysis, "color"),
+        "description": get_nested_attribute(analysis, "description"),
         "image_path": image_url
     }
 
@@ -541,15 +555,17 @@ def analyze_user_profile_photos(
                 "You are a professional fashion and styling assistant. Analyze the three uploaded photos of a user: "
                 "1. A front full-body photo, 2. A side full-body photo, and 3. A face photo. "
                 "Determine the user's physical attributes. "
-                "Return a JSON object with the following fields: "
-                "'body_type' (e.g. Hourglass, Pear, Rectangle, Inverted Triangle, Athletic, Oval), "
-                "'body_build' (e.g. Slim, Average, Athletic, Muscular, Heavy), "
-                "'skin_tone' (e.g. Fair, Light, Medium, Olive, Tan, Dark, Deep), "
-                "'undertone' (Warm, Cool, Neutral), "
-                "'hair_color' (e.g. Black, Brown, Blonde, Red, Grey, White), "
-                "'face_shape' (e.g. Oval, Round, Square, Heart, Diamond), "
-                "'facial_hair' (e.g. Beard, Mustache, Clean Shaven, stubble), and "
-                "'estimated_height' (e.g. 170-175 cm). "
+                "Return a JSON object where each attribute contains a 'value' (the detected string) and "
+                "a 'confidence' (an estimated confidence score as a decimal between 0.0 and 1.0, e.g., 0.92). "
+                "The attributes to detect are:\n"
+                "- 'body_type' (e.g., Hourglass, Pear, Rectangle, Inverted Triangle, Athletic, Oval)\n"
+                "- 'body_build' (e.g., Slim, Average, Athletic, Muscular, Heavy)\n"
+                "- 'skin_tone' (e.g., Fair, Light, Medium, Olive, Tan, Dark, Deep)\n"
+                "- 'undertone' (Warm, Cool, Neutral)\n"
+                "- 'hair_color' (e.g., Black, Brown, Blonde, Red, Grey, White)\n"
+                "- 'face_shape' (e.g., Oval, Round, Square, Heart, Diamond)\n"
+                "- 'facial_hair' (e.g., Beard, Mustache, Clean Shaven, stubble)\n"
+                "- 'estimated_height' (e.g., 170-175 cm)\n\n"
                 "Keep the JSON clean, do not wrap it in markdown formatting, and only return the JSON object."
             )
             response = model.generate_content([prompt, front_img, side_img, face_img])
@@ -576,14 +592,14 @@ def analyze_user_profile_photos(
                     pass
 
     return {
-        "body_type": analysis.get("body_type") or "",
-        "body_build": analysis.get("body_build") or "",
-        "skin_tone": analysis.get("skin_tone") or "",
-        "undertone": analysis.get("undertone") or "",
-        "hair_color": analysis.get("hair_color") or "",
-        "face_shape": analysis.get("face_shape") or "",
-        "facial_hair": analysis.get("facial_hair") or "",
-        "estimated_height": analysis.get("estimated_height") or ""
+        "body_type": get_nested_attribute(analysis, "body_type"),
+        "body_build": get_nested_attribute(analysis, "body_build"),
+        "skin_tone": get_nested_attribute(analysis, "skin_tone"),
+        "undertone": get_nested_attribute(analysis, "undertone"),
+        "hair_color": get_nested_attribute(analysis, "hair_color"),
+        "face_shape": get_nested_attribute(analysis, "face_shape"),
+        "facial_hair": get_nested_attribute(analysis, "facial_hair"),
+        "estimated_height": get_nested_attribute(analysis, "estimated_height")
     }
 
 
