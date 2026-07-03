@@ -47,6 +47,18 @@ class UserSchema(BaseModel):
     gender: str
     height: float
     weight: float
+    location: Optional[str] = ""
+    budget: Optional[str] = ""
+    preferred_style: Optional[str] = ""
+    occupation: Optional[str] = None
+    body_type: Optional[str] = None
+    body_build: Optional[str] = None
+    skin_tone: Optional[str] = None
+    undertone: Optional[str] = None
+    hair_color: Optional[str] = None
+    face_shape: Optional[str] = None
+    facial_hair: Optional[str] = None
+    estimated_height: Optional[str] = None
 
 class ItemCreateSchema(BaseModel):
     name: str
@@ -122,7 +134,19 @@ def create_or_update_user_profile(user_data: UserSchema):
         age=user_data.age,
         gender=user_data.gender,
         height=user_data.height,
-        weight=user_data.weight
+        weight=user_data.weight,
+        location=user_data.location,
+        budget=user_data.budget,
+        preferred_style=user_data.preferred_style,
+        occupation=user_data.occupation,
+        body_type=user_data.body_type,
+        body_build=user_data.body_build,
+        skin_tone=user_data.skin_tone,
+        undertone=user_data.undertone,
+        hair_color=user_data.hair_color,
+        face_shape=user_data.face_shape,
+        facial_hair=user_data.facial_hair,
+        estimated_height=user_data.estimated_height
     )
     
     if not wardrobe:
@@ -379,9 +403,9 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
     image_url = f"{base_url}static/uploads/{unique_filename}"
 
     return {
-        "category": analysis.get("category", ""),
-        "color": analysis.get("color", ""),
-        "description": analysis.get("description", ""),
+        "category": analysis.get("category") or "",
+        "color": analysis.get("color") or "",
+        "description": analysis.get("description") or "",
         "image_path": image_url
     }
 
@@ -427,6 +451,139 @@ def get_wardrobe_analytics():
         "total_items": total_items,
         "category_counts": category_counts,
         "most_common_color": most_common_color
+    }
+
+
+@app.post("/profile/analyze", tags=["User"])
+def analyze_user_profile_photos(
+    request: Request,
+    front_image: UploadFile = File(...),
+    side_image: UploadFile = File(...),
+    face_image: UploadFile = File(...)
+):
+    """
+    Uploads front full body, side full body, and face images.
+    Uses Gemini 2.5 Flash to analyze the images and return the detected
+    body type, skin tone, undertone, and hair color as structured JSON.
+    """
+    # 1. Ensure Gemini is configured
+    global gemini_key
+    if not gemini_key:
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    gemini_key = config.get("gemini_api_key")
+            except Exception as e:
+                print(f"Error reading Gemini key from config: {e}")
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
+
+    if not gemini_key:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Gemini API Key is not configured in config.json. Please add your key first."
+        )
+
+    # 2. Validate file extensions
+    images = {
+        "front_image": front_image,
+        "side_image": side_image,
+        "face_image": face_image
+    }
+    saved_paths = []
+
+    for name, file in images.items():
+        original_filename = file.filename
+        ext = original_filename.split(".")[-1].lower() if "." in original_filename else ""
+        if ext not in ["jpg", "jpeg", "png", "webp"]:
+            # Clean up already saved files
+            for path in saved_paths:
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except Exception:
+                        pass
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported format for {name}. Only JPG, JPEG, PNG, and WEBP formats are allowed."
+            )
+
+        unique_filename = f"{uuid.uuid4()}.{ext}"
+        upload_dir = os.path.join("static", "uploads")
+        file_path = os.path.join(upload_dir, unique_filename)
+        saved_paths.append(file_path)
+
+        try:
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        except Exception as e:
+            # Clean up already saved files
+            for path in saved_paths:
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except Exception:
+                        pass
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"An error occurred while saving {name}: {str(e)}"
+            )
+
+    # 3. Use Gemini to analyze the images
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        with Image.open(saved_paths[0]) as front_img, \
+             Image.open(saved_paths[1]) as side_img, \
+             Image.open(saved_paths[2]) as face_img:
+            
+            prompt = (
+                "You are a professional fashion and styling assistant. Analyze the three uploaded photos of a user: "
+                "1. A front full-body photo, 2. A side full-body photo, and 3. A face photo. "
+                "Determine the user's physical attributes. "
+                "Return a JSON object with the following fields: "
+                "'body_type' (e.g. Hourglass, Pear, Rectangle, Inverted Triangle, Athletic, Oval), "
+                "'body_build' (e.g. Slim, Average, Athletic, Muscular, Heavy), "
+                "'skin_tone' (e.g. Fair, Light, Medium, Olive, Tan, Dark, Deep), "
+                "'undertone' (Warm, Cool, Neutral), "
+                "'hair_color' (e.g. Black, Brown, Blonde, Red, Grey, White), "
+                "'face_shape' (e.g. Oval, Round, Square, Heart, Diamond), "
+                "'facial_hair' (e.g. Beard, Mustache, Clean Shaven, stubble), and "
+                "'estimated_height' (e.g. 170-175 cm). "
+                "Keep the JSON clean, do not wrap it in markdown formatting, and only return the JSON object."
+            )
+            response = model.generate_content([prompt, front_img, side_img, face_img])
+        
+        analysis = parse_gemini_json(response.text)
+    except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "ResourceExhausted" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit exceeded. Please wait a few seconds before trying again."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Gemini profile analysis failed: {err_msg}"
+        )
+    finally:
+        # Clean up temporary saved files on disk
+        for path in saved_paths:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
+
+    return {
+        "body_type": analysis.get("body_type") or "",
+        "body_build": analysis.get("body_build") or "",
+        "skin_tone": analysis.get("skin_tone") or "",
+        "undertone": analysis.get("undertone") or "",
+        "hair_color": analysis.get("hair_color") or "",
+        "face_shape": analysis.get("face_shape") or "",
+        "facial_hair": analysis.get("facial_hair") or "",
+        "estimated_height": analysis.get("estimated_height") or ""
     }
 
 

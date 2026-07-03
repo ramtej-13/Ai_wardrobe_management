@@ -229,8 +229,102 @@ def run_api_tests():
     os.remove(test_local_path)
     print("Analysis test file cleaned up from static folder.")
 
-    # 14. Cleanup database document
-    print("\n14. Cleaning up database test document...")
+    # 14. Test POST /profile/analyze (Gemini profile analysis integration)
+    print("\n14. Testing User Profile Photo Analysis (Gemini Multimodal)...")
+    
+    # Generate mock images in memory
+    front_img = Image.new("RGB", (100, 100), color="blue")
+    side_img = Image.new("RGB", (100, 100), color="green")
+    face_img = Image.new("RGB", (100, 100), color="pink")
+    
+    front_bytes = BytesIO()
+    front_img.save(front_bytes, format='JPEG')
+    front_data = front_bytes.getvalue()
+    
+    side_bytes = BytesIO()
+    side_img.save(side_bytes, format='JPEG')
+    side_data = side_bytes.getvalue()
+    
+    face_bytes = BytesIO()
+    face_img.save(face_bytes, format='JPEG')
+    face_data = face_bytes.getvalue()
+    
+    profile_payload = {
+        "front_image": ("front_body.jpg", front_data, "image/jpeg"),
+        "side_image": ("side_body.jpg", side_data, "image/jpeg"),
+        "face_image": ("face.jpg", face_data, "image/jpeg")
+    }
+    
+    response = client.post("/profile/analyze", files=profile_payload)
+    assert response.status_code == 200
+    res_data = response.json()
+    
+    assert "body_type" in res_data
+    assert "body_build" in res_data
+    assert "skin_tone" in res_data
+    assert "undertone" in res_data
+    assert "hair_color" in res_data
+    assert "face_shape" in res_data
+    assert "facial_hair" in res_data
+    assert "estimated_height" in res_data
+    
+    print("Gemini profile analysis returned:")
+    print(f"  Body Type: {res_data['body_type']}")
+    print(f"  Body Build: {res_data['body_build']}")
+    print(f"  Skin Tone: {res_data['skin_tone']}")
+    print(f"  Undertone: {res_data['undertone']}")
+    print(f"  Hair Color: {res_data['hair_color']}")
+    print(f"  Face Shape: {res_data['face_shape']}")
+    print(f"  Facial Hair: {res_data['facial_hair']}")
+    print(f"  Estimated Height: {res_data['estimated_height']}")
+    print("Profile photo analysis verified successfully.")
+
+    # 15. Test POST /user and GET /user with detailed AI profile attributes
+    print("\n15. Testing Profile Saving & Loading with AI Attributes...")
+    detailed_user_payload = {
+        "name": "John Connor",
+        "age": 15,
+        "gender": "Male",
+        "height": 160.0,
+        "weight": 52.0,
+        "location": "Los Angeles",
+        "budget": "Mid",
+        "preferred_style": "Casual/Streetwear",
+        "occupation": "Student",
+        "body_type": res_data['body_type'],
+        "body_build": res_data['body_build'],
+        "skin_tone": res_data['skin_tone'],
+        "undertone": res_data['undertone'],
+        "hair_color": res_data['hair_color'],
+        "face_shape": res_data['face_shape'],
+        "facial_hair": res_data['facial_hair'],
+        "estimated_height": res_data['estimated_height']
+    }
+    # Update profile
+    response = client.post("/user", json=detailed_user_payload)
+    assert response.status_code == 201
+    
+    # Retrieve profile
+    response = client.get("/user")
+    assert response.status_code == 200
+    retrieved_user = response.json()
+    assert retrieved_user["name"] == "John Connor"
+    assert retrieved_user["location"] == "Los Angeles"
+    assert retrieved_user["budget"] == "Mid"
+    assert retrieved_user["preferred_style"] == "Casual/Streetwear"
+    assert retrieved_user["occupation"] == "Student"
+    assert retrieved_user["body_type"] == res_data['body_type']
+    assert retrieved_user["body_build"] == res_data['body_build']
+    assert retrieved_user["skin_tone"] == res_data['skin_tone']
+    assert retrieved_user["undertone"] == res_data['undertone']
+    assert retrieved_user["hair_color"] == res_data['hair_color']
+    assert retrieved_user["face_shape"] == res_data['face_shape']
+    assert retrieved_user["facial_hair"] == res_data['facial_hair']
+    assert retrieved_user["estimated_height"] == res_data['estimated_height']
+    print("Profile save and load with AI attributes verified successfully.")
+
+    # 16. Cleanup database document
+    print("\n16. Cleaning up database test document...")
     mongo_client = get_mongo_client()
     db = mongo_client["wardrobe_db"]
     collection = db["wardrobes"]
