@@ -19,7 +19,42 @@ app = FastAPI(
     version="1.0.0"
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # Mount static files directory to serve uploaded images via web URLs
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print("\n--- FASTAPI VALIDATION ERROR DETAILS ---")
+    print(f"Errors: {exc.errors()}")
+    try:
+        body = await request.body()
+        print(f"Request Body: {body.decode('utf-8')}")
+    except Exception:
+        pass
+    print("----------------------------------------\n")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors(), "body": str(exc.body)},
+    )
+
 os.makedirs(os.path.join("static", "uploads"), exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -84,9 +119,24 @@ class RecommendationRequest(BaseModel):
 
 
 # Helpers
-def get_wardrobe_or_error(enforce_user: bool = True) -> Wardrobe:
+def get_db_identifier(request: Request) -> str:
+    """Extracts X-User-Email header to form a clean, isolated user DB document identifier."""
+    email = request.headers.get("X-User-Email")
+    print(f"[API HEADER CHECK] X-User-Email header value: '{email}'")
+    if email:
+        email = email.strip().lower()
+        if not email.endswith("@gmail.com"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Authentication failed. Only Gmail (@gmail.com) accounts are permitted."
+            )
+        sanitized = email.replace("@", "_").replace(".", "_")
+        return f"wardrobe_{sanitized}"
+    return "active_wardrobe"
+
+def get_wardrobe_or_error(db_id: str, enforce_user: bool = True) -> Wardrobe:
     """Helper to load wardrobe from DB. Raises 400 or 404 errors if state is invalid."""
-    wardrobe = load_wardrobe(DB_IDENTIFIER)
+    wardrobe = load_wardrobe(db_id)
     if not wardrobe:
         if enforce_user:
             raise HTTPException(
@@ -106,11 +156,12 @@ def get_wardrobe_or_error(enforce_user: bool = True) -> Wardrobe:
 
 # Endpoints
 @app.get("/", tags=["System"])
-def root():
+def root(request: Request):
     """Health check and API overview."""
+    db_id = get_db_identifier(request)
     # Attempt to load to check database connection
     try:
-        wardrobe = load_wardrobe(DB_IDENTIFIER)
+        wardrobe = load_wardrobe(db_id)
         db_connected = True
         has_profile = wardrobe is not None and wardrobe.user is not None
     except Exception:
@@ -125,16 +176,18 @@ def root():
     }
 
 @app.get("/user", response_model=UserSchema, tags=["User"])
-def get_user_profile():
+def get_user_profile(request: Request):
     """Retrieves the active user profile."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     return wardrobe.user.to_dict()
 
 @app.post("/user", status_code=status.HTTP_201_CREATED, tags=["User"])
-def create_or_update_user_profile(user_data: UserSchema):
+def create_or_update_user_profile(request: Request, user_data: UserSchema):
     """Creates a new user profile or updates the existing one."""
+    db_id = get_db_identifier(request)
     # Try to load existing wardrobe, otherwise create a fresh one
-    wardrobe = load_wardrobe(DB_IDENTIFIER)
+    wardrobe = load_wardrobe(db_id)
     new_user = User(
         name=user_data.name,
         age=user_data.age,
@@ -161,7 +214,7 @@ def create_or_update_user_profile(user_data: UserSchema):
         wardrobe.user = new_user
 
     # Save immediately to MongoDB Atlas
-    success = save_wardrobe(wardrobe, DB_IDENTIFIER)
+    success = save_wardrobe(wardrobe, db_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -171,9 +224,10 @@ def create_or_update_user_profile(user_data: UserSchema):
     return {"message": "User profile successfully saved!", "user": wardrobe.user.to_dict()}
 
 @app.get("/items", tags=["Wardrobe Items"])
-def get_all_wardrobe_items():
+def get_all_wardrobe_items(request: Request):
     """Retrieves all wardrobe items, category counts, and profile summary."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     return {
         "user_name": wardrobe.user.name,
         "total_items": len(wardrobe.get_all_items()),
@@ -182,9 +236,10 @@ def get_all_wardrobe_items():
     }
 
 @app.post("/items", status_code=status.HTTP_201_CREATED, tags=["Wardrobe Items"])
-def add_wardrobe_item(item_data: ItemCreateSchema):
+def add_wardrobe_item(request: Request, item_data: ItemCreateSchema):
     """Adds a new wardrobe item and automatically saves it to MongoDB Atlas."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     
     new_item = wardrobe.add_item(
         name=item_data.name,
@@ -196,7 +251,7 @@ def add_wardrobe_item(item_data: ItemCreateSchema):
         date_added=item_data.date_added
     )
     
-    success = save_wardrobe(wardrobe, DB_IDENTIFIER)
+    success = save_wardrobe(wardrobe, db_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -206,9 +261,10 @@ def add_wardrobe_item(item_data: ItemCreateSchema):
     return {"message": "Item added successfully!", "item": new_item.to_dict()}
 
 @app.put("/items/{item_id}", tags=["Wardrobe Items"])
-def edit_wardrobe_item(item_id: str, edit_data: ItemEditSchema):
+def edit_wardrobe_item(request: Request, item_id: str, edit_data: ItemEditSchema):
     """Edits an existing wardrobe item by its unique ID (e.g. C001)."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     
     # Check if item exists
     item = wardrobe.find_item_by_id(item_id)
@@ -230,7 +286,7 @@ def edit_wardrobe_item(item_id: str, edit_data: ItemEditSchema):
         date_added=edit_data.date_added
     )
     
-    success = save_wardrobe(wardrobe, DB_IDENTIFIER)
+    success = save_wardrobe(wardrobe, db_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -240,9 +296,10 @@ def edit_wardrobe_item(item_id: str, edit_data: ItemEditSchema):
     return {"message": "Item updated successfully!", "item": wardrobe.find_item_by_id(item_id).to_dict()}
 
 @app.delete("/items/{item_id}", tags=["Wardrobe Items"])
-def delete_wardrobe_item(item_id: str):
+def delete_wardrobe_item(request: Request, item_id: str):
     """Removes a wardrobe item from the database by its unique ID."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     
     # Check if item exists
     item = wardrobe.find_item_by_id(item_id)
@@ -254,7 +311,7 @@ def delete_wardrobe_item(item_id: str):
         
     wardrobe.remove_item(item_id)
     
-    success = save_wardrobe(wardrobe, DB_IDENTIFIER)
+    success = save_wardrobe(wardrobe, db_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -264,9 +321,10 @@ def delete_wardrobe_item(item_id: str):
     return {"message": f"Item '{item_id}' successfully removed from wardrobe!"}
 
 @app.get("/items/search", tags=["Wardrobe Items"])
-def search_wardrobe_items(q: str):
+def search_wardrobe_items(request: Request, q: str):
     """Searches wardrobe items matching the query text (case-insensitive)."""
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     results = wardrobe.search_items(q)
     return {
         "query": q,
@@ -435,11 +493,12 @@ def analyze_wardrobe_item_image(request: Request, file: UploadFile = File(...)):
 
 
 @app.get("/wardrobe", tags=["Wardrobe Items"])
-def get_wardrobe_dashboard():
+def get_wardrobe_dashboard(request: Request):
     """
     Retrieves all wardrobe items grouped by their categories.
     """
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     grouped = {}
     for item in wardrobe.get_all_items():
         cat = item.category.strip().capitalize() if item.category else "Uncategorized"
@@ -450,11 +509,12 @@ def get_wardrobe_dashboard():
 
 
 @app.get("/wardrobe/analytics", tags=["Wardrobe Items"])
-def get_wardrobe_analytics():
+def get_wardrobe_analytics(request: Request):
     """
     Calculates wardrobe analytics: total clothes, category breakdown, and most common color.
     """
-    wardrobe = get_wardrobe_or_error(enforce_user=True)
+    db_id = get_db_identifier(request)
+    wardrobe = get_wardrobe_or_error(db_id, enforce_user=True)
     items = wardrobe.get_all_items()
     total_items = len(items)
     
@@ -614,13 +674,14 @@ def analyze_user_profile_photos(
 
 
 @app.post("/recommend", tags=["Outfit Recommendations"])
-def recommend_outfit(req: RecommendationRequest):
+def recommend_outfit(request: Request, req: RecommendationRequest):
     """
     Recommends a styled outfit (top, bottom, shoes) from the user's wardrobe items
     matching the user's physical profile characteristics and a target occasion.
     """
+    db_id = get_db_identifier(request)
     # 1. Load active wardrobe and verify user profile exists
-    wardrobe = load_wardrobe(DB_IDENTIFIER)
+    wardrobe = load_wardrobe(db_id)
     if not wardrobe or not wardrobe.user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
