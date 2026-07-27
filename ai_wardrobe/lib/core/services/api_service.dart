@@ -251,6 +251,31 @@ class ApiService {
     }
   }
 
+  Future<ChatResponse> chatRecommend(List<Map<String, String>> history, String message) async {
+    final url = Uri.parse('${AppConfig.baseUrl}/recommend/chat');
+    try {
+      final headers = await _getHeaders();
+      final response = await _client.post(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          'history': history,
+          'message': message,
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return ChatResponse.fromJson(data);
+      } else {
+        final errBody = jsonDecode(response.body);
+        throw ApiServiceException(errBody['detail']?.toString() ?? 'Chat recommendation failed', statusCode: response.statusCode);
+      }
+    } catch (e) {
+      if (e is ApiServiceException) rethrow;
+      throw ApiServiceException('Network error during chat recommendation: ${e.toString()}');
+    }
+  }
+
   // --- ANALYTICS ---
 
   Future<WardrobeAnalytics> fetchAnalytics() async {

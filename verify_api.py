@@ -17,6 +17,15 @@ def run_api_tests():
     collection = db["wardrobes"]
     collection.delete_one({"_id": "test_wardrobe"})
     mongo_client.close()
+    
+    import os
+    fallback_path = "wardrobe_fallback_test_wardrobe.json"
+    if os.path.exists(fallback_path):
+        try:
+            os.remove(fallback_path)
+        except Exception as e:
+            print(f"Error removing fallback file: {e}")
+            
     print("Test document cleared.")
 
     # 1. Test root health check
@@ -383,6 +392,51 @@ def run_api_tests():
         
     print(f"  Reason:\n{rec_data['reason']}")
     print("Outfit Recommendation Engine verified successfully.")
+
+    # 16b. Test POST /recommend/chat (Outfit Chatbot Recommendation Engine)
+    print("\n16b. Testing Outfit Chatbot Recommendation Engine...")
+    
+    # Test case 1: Missing context, expecting follow-up question
+    chat_payload_1 = {
+        "history": [],
+        "message": "I need styling for a beach party"
+    }
+    response = client.post("/recommend/chat", json=chat_payload_1)
+    assert response.status_code == 200
+    chat_data = response.json()
+    assert "chat_response" in chat_data
+    assert "recommendations" in chat_data
+    # Since location and time are missing, recommendations should be empty or null
+    assert not chat_data["recommendations"] or len(chat_data["recommendations"]) == 0
+    print("Chatbot successfully analyzed first message, detected missing details, and asked for them.")
+    
+    # Test case 2: Refused missing details, should proceed
+    chat_payload_2 = {
+        "history": [
+            {"role": "user", "text": "I need styling for a beach party"},
+            {"role": "model", "text": chat_data["chat_response"]}
+        ],
+        "message": "I don't know the location and time. Just recommend outfits."
+    }
+    response = client.post("/recommend/chat", json=chat_payload_2)
+    assert response.status_code == 200
+    chat_data_2 = response.json()
+    assert "chat_response" in chat_data_2
+    assert "recommendations" in chat_data_2
+    # Since we refused, recommendations should be generated
+    assert len(chat_data_2["recommendations"]) > 0
+    print("Chatbot successfully detected user refusal/skip and proceeded with recommendations.")
+    
+    # Print recommended outfits from chatbot
+    for idx, rec in enumerate(chat_data_2["recommendations"]):
+        print(f"  Option #{idx+1}:")
+        if rec['top']:
+            print(f"    Top: {rec['top']['name']} (ID: {rec['top']['id']})")
+        if rec['bottom']:
+            print(f"    Bottom: {rec['bottom']['name']} (ID: {rec['bottom']['id']})")
+        if rec['shoes']:
+            print(f"    Shoes: {rec['shoes']['name']} (ID: {rec['shoes']['id']})")
+        print(f"    Reason: {rec['reason']}")
 
     # 17. Cleanup database document
     print("\n17. Cleaning up database test document...")

@@ -132,7 +132,7 @@ def get_db_identifier(request: Request) -> str:
             )
         sanitized = email.replace("@", "_").replace(".", "_")
         return f"wardrobe_{sanitized}"
-    return "active_wardrobe"
+    return DB_IDENTIFIER
 
 def get_wardrobe_or_error(db_id: str, enforce_user: bool = True) -> Wardrobe:
     """Helper to load wardrobe from DB. Raises 400 or 404 errors if state is invalid."""
@@ -800,6 +800,196 @@ def recommend_outfit(request: Request, req: RecommendationRequest):
         "bottom": serialize_item(rec_data.get("bottom_id"), bottom_item),
         "shoes": serialize_item(rec_data.get("shoes_id"), shoes_item),
         "reason": rec_data.get("reason") or "No reason provided."
+    }
+
+
+class ChatMessage(BaseModel):
+    role: str  # "user" or "model"
+    text: str
+
+
+class ChatRecommendationRequest(BaseModel):
+    history: List[ChatMessage]
+    message: str
+
+
+@app.post("/recommend/chat", tags=["Outfit Recommendations"])
+def recommend_outfit_chat(request: Request, req: ChatRecommendationRequest):
+    """
+    Handles chatbot conversation for outfit recommendations.
+    Gathers occasion, location, and time before recommending.
+    If the user has few clothes, provides a limited wardrobe warning.
+    """
+    db_id = get_db_identifier(request)
+    wardrobe = load_wardrobe(db_id)
+    if not wardrobe or not wardrobe.user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User profile has not been created yet. Please set up a user profile first."
+        )
+
+    if not wardrobe.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your wardrobe is empty. Please add some items to your wardrobe first."
+        )
+
+    # Securely check and configure Gemini API key
+    global gemini_key
+    if not gemini_key:
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                    gemini_key = config.get("gemini_api_key")
+            except Exception as e:
+                print(f"Error reading Gemini key: {e}")
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
+
+    if not gemini_key:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Gemini API Key is not configured. Please add your key first."
+        )
+
+    # Format user profile context
+    user = wardrobe.user
+    profile_summary = (
+        f"Gender: {user.gender}, Age: {user.age}, Preferred Style: {user.preferred_style or 'Not specified'}, "
+        f"Location: {user.location or 'Not specified'}, Budget: {user.budget or 'Not specified'}, "
+        f"Occupation: {user.occupation or 'Not specified'}. "
+        f"AI Physical Profile: Body Type: {user.body_type or 'Unknown'}, Body Build: {user.body_build or 'Unknown'}, "
+        f"Skin Tone: {user.skin_tone or 'Unknown'}, Undertone: {user.undertone or 'Unknown'}, "
+        f"Hair Color: {user.hair_color or 'Unknown'}, Face Shape: {user.face_shape or 'Unknown'}, "
+        f"Facial Hair: {user.facial_hair or 'Unknown'}, Height: {user.estimated_height or 'Unknown'}."
+    )
+
+    # Format items list context
+    items_list = []
+    for item in wardrobe.items:
+        items_list.append({
+            "id": item.id,
+            "name": item.name,
+            "category": item.category,
+            "color": item.color,
+            "description": item.description,
+            "fit": item.fit
+        })
+
+    # Detect limited wardrobe
+    categories = [item.category.lower() for item in wardrobe.items]
+    has_top = any(c in categories for c in ["shirt", "t-shirt", "sweatshirt", "jacket", "top"])
+    has_bottom = any(c in categories for c in ["pants", "cargo", "jeans", "shorts", "skirt", "bottom"])
+    has_shoes = any("shoes" in c or "footwear" in c for c in categories)
+    is_limited = len(wardrobe.items) < 6 or not (has_top and has_bottom and has_shoes)
+
+    # Format history context
+    history_str = ""
+    for msg in req.history:
+        history_str += f"{msg.role.capitalize()}: {msg.text}\n"
+    history_str += f"User: {req.message}\n"
+
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        prompt = (
+            "You are a futuristic, professional AI fashion stylist chatbot. Your goal is to recommend custom outfit combinations "
+            "from the user's actual wardrobe items based on their event details. "
+            "To give a great recommendation, you need to know three key details: Occasion, Location, and Time.\n\n"
+            "--- STEP 1: CONVERSATION ANALYSIS & CONTEXT GATHERING ---\n"
+            "Analyze the conversation history and the user's latest message:\n"
+            f"{history_str}\n"
+            "1. Extract the current values for Occasion, Location, and Time. If any are mentioned in the history or latest message, save them.\n"
+            "2. Determine if the user is refusing to give missing details (e.g. they say 'skip', 'no', 'just generate', 'I don't know', 'proceed', "
+            "or ignore requests for details and ask for outfits directly). If they refuse/skip OR if you have already asked them once "
+            "and they still didn't provide them, treat it as a refusal/skip and proceed to recommendation generation.\n"
+            "3. If any detail (Occasion, Location, Time) is missing and the user has NOT refused/skipped yet, your response MUST be a follow-up "
+            "question asking politely for the missing detail(s) (e.g., 'Could you share the location and time of the event?'). In this case, "
+            "do NOT generate outfit recommendations. Set recommendations to an empty list or null.\n\n"
+            "--- STEP 2: OUTFIT GENERATION (ONLY IF ALL DETAILS PRESENT OR USER REFUSED) ---\n"
+            "If you are ready to recommend outfits:\n"
+            "1. Select up to 3 distinct, cohesive, color-harmonious, and occasion-appropriate outfit options from the user's actual wardrobe items. "
+            "Each outfit option must consist of exactly one top (e.g. Shirt, T-shirt, Sweatshirt, Jacket), one bottom (e.g. Pants, Cargo, Jeans, Shorts, Skirt), "
+            "and one shoes item. Choose items ONLY from the provided list. Return null for a slot if no matching category item is in the wardrobe.\n"
+            "2. Note the wardrobe limitation status:\n"
+            f"   Is Wardrobe Limited: {is_limited} (Total items in wardrobe: {len(wardrobe.items)})\n"
+            "   If is_limited is True, you MUST explicitly include the exact warning message in your chat_response:\n"
+            "   'Your wardrobe is very limited, so that's why I gave you possible outfits from your wardrobe, and it may not be suitable for the occasion.'\n"
+            "3. Describe the recommended outfits in your `chat_response` dynamically and enthusiastically (futuristic AI stylist tone).\n\n"
+            "User Profile Summary:\n"
+            f"{profile_summary}\n\n"
+            "User's Wardrobe Items:\n"
+            f"{json.dumps(items_list, indent=2)}\n\n"
+            "Return a JSON object in this format:\n"
+            "{\n"
+            "  \"chat_response\": \"AI response text (including any questions or recommendations description or limited wardrobe warning)\",\n"
+            "  \"extracted_details\": {\n"
+            "    \"occasion\": \"extracted_occasion_or_null\",\n"
+            "    \"location\": \"extracted_location_or_null\",\n"
+            "    \"time\": \"extracted_time_or_null\"\n"
+            "  },\n"
+            "  \"refused_missing\": true/false,\n"
+            "  \"wardrobe_limited\": true/false,\n"
+            "  \"recommendations\": [\n"
+            "    {\n"
+            "      \"top_id\": \"selected_top_item_id_or_null\",\n"
+            "      \"bottom_id\": \"selected_bottom_item_id_or_null\",\n"
+            "      \"shoes_id\": \"selected_shoes_item_id_or_null\",\n"
+            "      \"reason\": \"Detailed reason for selecting these specific items for this option.\"\n"
+            "    }\n"
+            "  ]\n"
+            "}\n\n"
+            "Do not return markdown tags, return only the raw JSON object."
+        )
+        response = model.generate_content(prompt)
+        rec_data = parse_gemini_json(response.text)
+    except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "ResourceExhausted" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini API rate limit exceeded. Please wait a few seconds before trying again."
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Recommendation engine failed: {err_msg}"
+        )
+
+    # Helper serializer
+    def serialize_item(item_id, item_obj):
+        if not item_obj:
+            return None
+        return {
+            "id": item_id,
+            "name": item_obj.name,
+            "category": item_obj.category,
+            "color": item_obj.color,
+            "description": item_obj.description,
+            "fit": item_obj.fit,
+            "image_path": item_obj.image_path,
+            "date_added": item_obj.date_added
+        }
+
+    serialized_recs = []
+    recs_list = rec_data.get("recommendations")
+    if recs_list and isinstance(recs_list, list):
+        for rec in recs_list:
+            top_item = wardrobe.find_item_by_id(rec.get("top_id")) if rec.get("top_id") else None
+            bottom_item = wardrobe.find_item_by_id(rec.get("bottom_id")) if rec.get("bottom_id") else None
+            shoes_item = wardrobe.find_item_by_id(rec.get("shoes_id")) if rec.get("shoes_id") else None
+            serialized_recs.append({
+                "top": serialize_item(rec.get("top_id"), top_item),
+                "bottom": serialize_item(rec.get("bottom_id"), bottom_item),
+                "shoes": serialize_item(rec.get("shoes_id"), shoes_item),
+                "reason": rec.get("reason") or "No reason provided."
+            })
+
+    return {
+        "chat_response": rec_data.get("chat_response") or "Here is your styling recommendation.",
+        "extracted_details": rec_data.get("extracted_details") or {"occasion": None, "location": None, "time": None},
+        "refused_missing": rec_data.get("refused_missing") == True,
+        "wardrobe_limited": is_limited or rec_data.get("wardrobe_limited") == True,
+        "recommendations": serialized_recs
     }
 
 

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/theme.dart';
 import '../models/wardrobe_item.dart';
+import '../models/outfit_recommendation.dart';
 import '../providers/recommendation_provider.dart';
 
 class RecommendationScreen extends ConsumerStatefulWidget {
@@ -14,331 +16,568 @@ class RecommendationScreen extends ConsumerStatefulWidget {
 }
 
 class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
-  final List<String> _occasions = ['College', 'Office', 'Wedding', 'Casual', 'Party'];
-  String _selectedOccasion = 'Casual';
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
-  // Rich loading state indicators
-  int _loadingStep = 0;
-  Timer? _loadingTimer;
-  final List<String> _stylingMessages = [
-    'Scanning wardrobe...',
-    'Matching colors...',
-    'Finding combinations...',
-    'Ranking outfits...',
-    'Finalizing recommendation...',
+  // Posh collection category suggestions
+  final List<Map<String, String>> _quickSuggestions = [
+    {'display': '01 / CASUAL', 'value': 'Casual'},
+    {'display': '02 / SOIREE', 'value': 'Party'},
+    {'display': '03 / OFFICE', 'value': 'Office'},
+    {'display': '04 / WEDDING', 'value': 'Wedding'},
+    {'display': '05 / COLLEGE', 'value': 'College'},
+    {'display': '06 / SKIP DETAILS', 'value': 'Skip details & recommend outfits'},
   ];
 
-  void _startLoadingTimer() {
-    _loadingTimer?.cancel();
-    setState(() {
-      _loadingStep = 0;
-    });
-    _loadingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
-      if (mounted) {
-        setState(() {
-          _loadingStep = (_loadingStep + 1) % _stylingMessages.length;
-        });
-      } else {
-        timer.cancel();
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
 
-  void _stopLoadingTimer() {
-    _loadingTimer?.cancel();
-    _loadingTimer = null;
-  }
+  void _sendMessage([String? text]) {
+    final msg = text ?? _messageController.text;
+    if (msg.trim().isEmpty) return;
 
-  @override
-  void dispose() {
-    _loadingTimer?.cancel();
-    super.dispose();
-  }
-
-  void _getRecommendation() {
-    ref.read(recommendationProvider.notifier).getRecommendation(_selectedOccasion);
+    ref.read(recommendationProvider.notifier).sendChatMessage(msg);
+    if (text == null) {
+      _messageController.clear();
+    }
+    _scrollToBottom();
   }
 
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(recommendationProvider);
+
+    // Auto-scroll on new messages
     ref.listen(recommendationProvider, (previous, next) {
-      if (next.isLoading) {
-        _startLoadingTimer();
-      } else {
-        _stopLoadingTimer();
+      if (previous?.history.length != next.history.length || next.isLoading) {
+        _scrollToBottom();
       }
     });
 
-    final recState = ref.watch(recommendationProvider);
-
     return Scaffold(
       backgroundColor: AtelierTheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AI Styling Advisor',
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select an occasion to construct the optimal outfit combination from your actual wardrobe.',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AtelierTheme.secondaryText,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              _buildOccasionSelector(),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _getRecommendation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AtelierTheme.accent,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'GENERATE STYLING OUTFIT',
-                    style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 36),
-              recState.when(
-                data: (recommendation) {
-                  if (recommendation == null) {
-                    return _buildPlaceholderState();
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RECOMMENDED COMBINATION',
-                        style: GoogleFonts.manrope(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AtelierTheme.secondaryText,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildOutfitLayout(
-                        top: recommendation.top,
-                        bottom: recommendation.bottom,
-                        shoes: recommendation.shoes,
-                      ),
-                      const SizedBox(height: 32),
-                      _buildStylingReasonCard(recommendation.reason, _selectedOccasion),
-                    ],
-                  );
-                },
-                error: (err, __) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40.0),
-                    child: Text(
-                      'AI engine is sleeping. Please create a user profile and add items to closet first.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(color: AtelierTheme.secondaryText),
-                    ),
-                  ),
-                ),
-                loading: () => _buildLoadingState(),
-              ),
-            ],
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'A T E L I E R   S T Y L I S T',
+          style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+            letterSpacing: 6.0,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildOccasionSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'TARGET OCCASION',
-          style: GoogleFonts.manrope(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: AtelierTheme.secondaryText,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: _occasions.map((occ) {
-            final isSelected = _selectedOccasion == occ;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedOccasion = occ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? AtelierTheme.accent.withOpacity(0.1) : AtelierTheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isSelected ? AtelierTheme.accent : AtelierTheme.border,
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  occ,
-                  style: GoogleFonts.inter(
-                    color: isSelected ? AtelierTheme.accent : Colors.white,
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlaceholderState() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      alignment: Alignment.center,
-      child: Column(
-        children: [
-          const Icon(Icons.auto_awesome_outlined, size: 40, color: AtelierTheme.secondaryText),
-          const SizedBox(height: 16),
-          Text(
-            'Ready to style you',
-            style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Select occasion and click generate.',
-            style: GoogleFonts.inter(color: AtelierTheme.secondaryText, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60.0),
-        child: Column(
-          children: [
-            const CircularProgressIndicator(color: AtelierTheme.accent, strokeWidth: 2.5),
-            const SizedBox(height: 16),
-            Text(
-              _stylingMessages[_loadingStep],
-              style: GoogleFonts.inter(
-                fontSize: 14,
+        actions: [
+          TextButton(
+            onPressed: () {
+              ref.read(recommendationProvider.notifier).reset();
+            },
+            child: Text(
+              'RESET',
+              style: GoogleFonts.outfit(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
                 color: AtelierTheme.secondaryText,
+                letterSpacing: 1.5,
               ),
             ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Divider(color: Colors.white10, height: 1),
+            // Chat history list
+            Expanded(
+              child: chatState.history.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 20),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: chatState.history.length,
+                      itemBuilder: (context, index) {
+                        final msg = chatState.history[index];
+                        return _buildChatBubble(msg);
+                      },
+                    ),
+            ),
+
+            // Loading Indicator
+            if (chatState.isLoading) _buildTypingIndicator(),
+
+            // Error display
+            if (chatState.error != null)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AtelierTheme.warning.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: AtelierTheme.warning, size: 16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        chatState.error!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AtelierTheme.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Quick suggestion chips (Posh editorial style)
+            _buildQuickSuggestions(chatState.isLoading),
+
+            // Minimalist Input Bar
+            _buildInputBar(chatState.isLoading),
+            const SizedBox(height: 100), // Avoid bottom navigation shell overlay
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOutfitLayout({WardrobeItem? top, WardrobeItem? bottom, WardrobeItem? shoes}) {
-    return Row(
-      children: [
-        Expanded(child: _buildItemCard('TOP', top)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildItemCard('BOTTOM', bottom)),
-        const SizedBox(width: 12),
-        Expanded(child: _buildItemCard('SHOES', shoes)),
-      ],
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.auto_awesome_outlined, size: 36, color: Colors.white10),
+          const SizedBox(height: 16),
+          Text(
+            'DESIGN YOUR IDENTITY',
+            style: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white30,
+              letterSpacing: 3.0,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'State your styling parameters below.',
+            style: GoogleFonts.inter(fontSize: 12, color: AtelierTheme.secondaryText),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildItemCard(String slotLabel, WardrobeItem? item) {
-    final hasItem = item != null;
-    return Container(
-      height: 230,
-      decoration: BoxDecoration(
-        color: AtelierTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AtelierTheme.border,
-          width: 1,
-        ),
-      ),
-      child: Column(
+  Widget _buildChatBubble(ChatBubbleMessage msg) {
+    final isUser = msg.sender == 'user';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: const BoxDecoration(
-              color: AtelierTheme.surfaceAccent,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(19),
-                bottomRight: Radius.circular(10),
-              ),
+          if (!isUser) ...[
+            // Subtle neon bar as status indicator rather than noisy avatar
+            Container(
+              width: 1.5,
+              height: 38,
+              color: AtelierTheme.accent,
             ),
-            child: Text(
-              slotLabel,
-              style: GoogleFonts.manrope(fontSize: 9, fontWeight: FontWeight.bold, color: AtelierTheme.secondaryText),
-            ),
-          ),
+            const SizedBox(width: 14),
+          ],
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(19)),
-              child: hasItem
-                  ? Stack(
-                      fit: StackFit.expand,
+            child: Column(
+              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                // Text bubble
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isUser ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.01),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isUser ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.03),
+                      width: 0.6,
+                    ),
+                  ),
+                  child: Text(
+                    msg.text,
+                    style: GoogleFonts.inter(
+                      fontSize: 13.5,
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                
+                // Wardrobe limited warning box
+                if (!isUser && msg.wardrobeLimited)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AtelierTheme.warning.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        item.hasValidImageUrl
-                            ? Image.network(item.imagePath!, fit: BoxFit.cover)
-                            : const Center(child: Icon(Icons.checkroom, color: AtelierTheme.secondaryText)),
-                        Positioned(
-                          left: 8,
-                          right: 8,
-                          bottom: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.bold),
+                        const Icon(Icons.info_outline, color: Colors.orange, size: 14),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Limited Wardrobe Choice Detected. Results might be mismatched or fallback items.",
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: Colors.orange.shade300,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ),
                       ],
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, color: AtelierTheme.secondaryText),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Missing',
-                            style: GoogleFonts.inter(fontSize: 11, color: AtelierTheme.secondaryText),
-                          ),
-                        ],
-                      ),
                     ),
+                  ),
+
+                // Recommendations Carousel/Cards list
+                if (!isUser && msg.recommendations.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildRecommendationsList(msg.recommendations),
+                ],
+              ],
+            ),
+          ),
+          if (isUser) ...[
+            const SizedBox(width: 32),
+          ] else ...[
+            const SizedBox(width: 24),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsList(List<OutfitRecommendation> recommendations) {
+    return Container(
+      height: 390,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: recommendations.length,
+        itemBuilder: (context, index) {
+          final rec = recommendations[index];
+          return _buildOutfitCard(rec, index + 1, recommendations.length);
+        },
+      ),
+    );
+  }
+
+  Widget _buildOutfitCard(OutfitRecommendation rec, int optionIndex, int totalOptions) {
+    return Container(
+      width: 310,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.01),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Lookbook Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              color: Colors.white.withOpacity(0.02),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "LOOKBOOK 0$optionIndex / 0$totalOptions",
+                    style: GoogleFonts.outfit(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white70,
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: const BoxDecoration(
+                      color: AtelierTheme.accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Asymmetrical Editorial Grid Layout
+            Expanded(
+              child: Row(
+                children: [
+                  // Main Item: TOP (takes left side)
+                  Expanded(
+                    flex: 11,
+                    child: _buildEditorialItem('TOP', rec.top),
+                  ),
+                  Container(width: 0.8, color: Colors.white.withOpacity(0.05)), // Vertical thin divider
+                  // Stacking BOTTOM and SHOES (takes right side)
+                  Expanded(
+                    flex: 9,
+                    child: Column(
+                      children: [
+                        Expanded(child: _buildEditorialItem('BOTTOM', rec.bottom)),
+                        Container(height: 0.8, color: Colors.white.withOpacity(0.05)), // Horizontal thin divider
+                        Expanded(child: _buildEditorialItem('SHOES', rec.shoes)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Collapsible Insights
+            _buildCollapsibleReason(rec.reason),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditorialItem(String slotLabel, WardrobeItem? item) {
+    final hasItem = item != null;
+    return Container(
+      color: Colors.transparent,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Item Image or Placeholder
+          if (hasItem && item.hasValidImageUrl)
+            Image.network(
+              item.imagePath!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Center(
+                child: Icon(Icons.broken_image_outlined, color: Colors.white12, size: 24),
+              ),
+            )
+          else
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    slotLabel == 'TOP'
+                        ? Icons.checkroom_outlined
+                        : slotLabel == 'BOTTOM'
+                            ? Icons.layers_outlined
+                            : Icons.auto_awesome_outlined,
+                    color: Colors.white.withOpacity(0.04),
+                    size: 24,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'NO ITEM',
+                    style: GoogleFonts.manrope(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white.withOpacity(0.08),
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+          // Slot label overlay
+          Positioned(
+            left: 12,
+            top: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.55),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                slotLabel,
+                style: GoogleFonts.outfit(
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ),
+          
+          // Blur detail tag for item
+          if (hasItem)
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    color: Colors.black.withOpacity(0.45),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "${item.color} • ${item.fit}",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 7.5,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleReason(String reason) {
+    return _CollapsibleReasonWidget(reason: reason);
+  }
+
+  Widget _buildQuickSuggestions(bool isLoading) {
+    return Container(
+      height: 34,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: _quickSuggestions.length,
+        itemBuilder: (context, index) {
+          final display = _quickSuggestions[index]['display']!;
+          final value = _quickSuggestions[index]['value']!;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ActionChip(
+              backgroundColor: Colors.white.withOpacity(0.015),
+              side: BorderSide(color: Colors.white.withOpacity(0.08), width: 0.6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              label: Text(
+                display,
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              onPressed: isLoading ? null : () => _sendMessage(value),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildInputBar(bool isLoading) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.015),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.8),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      enabled: !isLoading,
+                      style: GoogleFonts.inter(fontSize: 13.5, color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'STATE YOUR REQUISITE...',
+                        hintStyle: GoogleFonts.outfit(
+                          color: Colors.white30,
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: isLoading ? null : () => _sendMessage(),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isLoading ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_upward,
+                color: isLoading ? Colors.white24 : Colors.black,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -346,180 +585,151 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
     );
   }
 
-  Widget _buildStylingReasonCard(String reason, String occasion) {
-    final String tempText;
-    final String weatherIcon;
-    final String confidenceText;
-    
-    final occLower = occasion.toLowerCase();
-    if (occLower.contains('college')) {
-      tempText = '30°C Sunny';
-      weatherIcon = '☀️';
-      confidenceText = '95%';
-    } else if (occLower.contains('office')) {
-      tempText = '24°C Indoor AC';
-      weatherIcon = '❄️';
-      confidenceText = '98%';
-    } else if (occLower.contains('wedding')) {
-      tempText = '28°C Pleasant';
-      weatherIcon = '🌸';
-      confidenceText = '97%';
-    } else if (occLower.contains('party')) {
-      tempText = '22°C Clear Night';
-      weatherIcon = '🌙';
-      confidenceText = '94%';
-    } else {
-      tempText = '26°C Clear';
-      weatherIcon = '☀️';
-      confidenceText = '96%';
-    }
+  Widget _buildTypingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 1.5,
+            height: 38,
+            color: AtelierTheme.accent.withOpacity(0.3),
+          ),
+          const SizedBox(width: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.01),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.03), width: 0.6),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'CURATING COMBINATIONS',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white30,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 8,
+                  height: 8,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: AtelierTheme.accent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    final List<String> bulletPoints = reason
+class _CollapsibleReasonWidget extends StatefulWidget {
+  final String reason;
+  const _CollapsibleReasonWidget({required this.reason});
+
+  @override
+  State<_CollapsibleReasonWidget> createState() => _CollapsibleReasonWidgetState();
+}
+
+class _CollapsibleReasonWidgetState extends State<_CollapsibleReasonWidget> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bulletPoints = widget.reason
         .split('\n')
         .map((e) => e.replaceAll(RegExp(r'^[•\-\*\s]+'), '').trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AtelierTheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AtelierTheme.border, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.auto_awesome, color: AtelierTheme.accent, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                "TODAY'S STYLE REC",
-                style: GoogleFonts.outfit(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AtelierTheme.accent,
-                  letterSpacing: 2.0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStyleDetailChip(
-                  label: 'Perfect For',
-                  value: occasion,
-                  icon: Icons.bookmark_border,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildStyleDetailChip(
-                  label: 'Weather',
-                  value: '$weatherIcon $tempText',
-                  icon: Icons.thermostat_outlined,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildStyleDetailChip(
-                  label: 'Confidence',
-                  value: confidenceText,
-                  icon: Icons.offline_bolt_outlined,
-                ),
-              ),
-            ],
-          ),
-          const Divider(color: AtelierTheme.border, height: 32),
-          Text(
-            'STYLING INSIGHTS',
-            style: GoogleFonts.outfit(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: AtelierTheme.secondaryText,
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (bulletPoints.isEmpty)
-            Text(
-              reason,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: Colors.white.withOpacity(0.9),
-                height: 1.6,
-              ),
-            )
-          else
-            ...bulletPoints.map((point) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 4.0, right: 10.0),
-                        child: Icon(
-                          Icons.lens,
-                          size: 6,
-                          color: AtelierTheme.accent,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          point,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: Colors.white.withOpacity(0.9),
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            color: Colors.white.withOpacity(0.01),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _isExpanded ? "CLOSE EDITORIAL NOTES" : "VIEW EDITORIAL NOTES",
+                  style: GoogleFonts.outfit(
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: AtelierTheme.accent,
+                    letterSpacing: 2.0,
                   ),
-                )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStyleDetailChip({required String label, required String value, required IconData icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: AtelierTheme.surfaceAccent,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AtelierTheme.border.withOpacity(0.3), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 12, color: AtelierTheme.secondaryText),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: GoogleFonts.inter(fontSize: 10, color: AtelierTheme.secondaryText),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+                ),
+                Icon(
+                  _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                  color: AtelierTheme.accent,
+                  size: 14,
+                ),
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+        if (_isExpanded)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.015),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (bulletPoints.isEmpty)
+                  Text(
+                    widget.reason,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: Colors.white70,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  ...bulletPoints.map((pt) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 5.0, right: 8.0),
+                              child: Icon(Icons.square, size: 3, color: AtelierTheme.accent),
+                            ),
+                            Expanded(
+                              child: Text(
+                                pt,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: Colors.white.withOpacity(0.8),
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
