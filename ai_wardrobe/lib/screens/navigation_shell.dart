@@ -48,28 +48,38 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
             left: 24,
             right: 24,
             bottom: 30,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: AtelierTheme.surface.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: AtelierTheme.border.withOpacity(0.5),
-                      width: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: LinearGradient(
+                  colors: [
+                    AtelierTheme.accent.withOpacity(0.25),
+                    const Color(0xFFD980FF).withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              padding: const EdgeInsets.all(0.8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(29.2),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AtelierTheme.surface.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(29.2),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavItem(icon: Icons.home_outlined, activeIcon: Icons.home, index: 0, label: 'Home', selectedIndex: selectedIndex),
-                      _buildNavItem(icon: Icons.checkroom_outlined, activeIcon: Icons.checkroom, index: 1, label: 'Wardrobe', selectedIndex: selectedIndex),
-                      _buildNavItem(icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, index: 2, label: 'Style', selectedIndex: selectedIndex),
-                      _buildNavItem(icon: Icons.person_outline, activeIcon: Icons.person, index: 3, label: 'Profile', selectedIndex: selectedIndex),
-                    ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildNavItem(icon: Icons.home_outlined, activeIcon: Icons.home, index: 0, label: 'Home', selectedIndex: selectedIndex),
+                        _buildNavItem(icon: Icons.checkroom_outlined, activeIcon: Icons.checkroom, index: 1, label: 'Wardrobe', selectedIndex: selectedIndex),
+                        _buildNavItem(icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, index: 2, label: 'Style', selectedIndex: selectedIndex),
+                        _buildNavItem(icon: Icons.person_outline, activeIcon: Icons.person, index: 3, label: 'Profile', selectedIndex: selectedIndex),
+                      ],
+                    ),
                   ),
                 ),
               ),

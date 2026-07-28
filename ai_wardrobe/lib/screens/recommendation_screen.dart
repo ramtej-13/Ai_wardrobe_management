@@ -104,61 +104,106 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            const Divider(color: Colors.white10, height: 1),
-            // Chat history list
-            Expanded(
-              child: chatState.history.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 20),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: chatState.history.length,
-                      itemBuilder: (context, index) {
-                        final msg = chatState.history[index];
-                        return _buildChatBubble(msg);
-                      },
-                    ),
-            ),
-
-            // Loading Indicator
-            if (chatState.isLoading) _buildTypingIndicator(),
-
-            // Error display
-            if (chatState.error != null)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            // Soft floating ambient backgrounds glows (Vision Pro style)
+            Positioned(
+              top: -120,
+              right: -100,
+              child: Container(
+                width: 320,
+                height: 320,
                 decoration: BoxDecoration(
-                  color: AtelierTheme.warning.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: AtelierTheme.warning, size: 16),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        chatState.error!,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AtelierTheme.warning,
-                        ),
-                      ),
+                  shape: BoxShape.circle,
+                  color: AtelierTheme.accent.withOpacity(0.04),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AtelierTheme.accent.withOpacity(0.04),
+                      blurRadius: 120,
+                      spreadRadius: 40,
                     ),
                   ],
                 ),
               ),
+            ),
+            Positioned(
+              bottom: 80,
+              left: -120,
+              child: Container(
+                width: 350,
+                height: 350,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFD980FF).withOpacity(0.02),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD980FF).withOpacity(0.02),
+                      blurRadius: 140,
+                      spreadRadius: 50,
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-            // Quick suggestion chips (Posh editorial style)
-            _buildQuickSuggestions(chatState.isLoading),
+            // Main chat layout column
+            Column(
+              children: [
+                const Divider(color: Colors.white10, height: 1),
+                // Chat history list
+                Expanded(
+                  child: chatState.history.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 20),
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: chatState.history.length,
+                          itemBuilder: (context, index) {
+                            final msg = chatState.history[index];
+                            return _buildChatBubble(msg);
+                          },
+                        ),
+                ),
 
-            // Minimalist Input Bar
-            _buildInputBar(chatState.isLoading),
-            const SizedBox(height: 100), // Avoid bottom navigation shell overlay
+                // Loading Indicator
+                if (chatState.isLoading) _buildTypingIndicator(),
+
+                // Error display
+                if (chatState.error != null)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AtelierTheme.warning.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: AtelierTheme.warning, size: 16),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            chatState.error!,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AtelierTheme.warning,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Quick suggestion chips (Posh editorial style)
+                _buildQuickSuggestions(chatState.isLoading),
+
+                // Minimalist Input Bar
+                _buildInputBar(chatState.isLoading),
+                const SizedBox(height: 100), // Avoid bottom navigation shell overlay
+              ],
+            ),
           ],
         ),
       ),
@@ -194,299 +239,104 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
   Widget _buildChatBubble(ChatBubbleMessage msg) {
     final isUser = msg.sender == 'user';
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isUser) ...[
-            // Subtle neon bar as status indicator rather than noisy avatar
-            Container(
-              width: 1.5,
-              height: 38,
-              color: AtelierTheme.accent,
-            ),
-            const SizedBox(width: 14),
-          ],
-          Expanded(
-            child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                // Text bubble
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: isUser ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.01),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isUser ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.03),
-                      width: 0.6,
-                    ),
-                  ),
-                  child: Text(
-                    msg.text,
-                    style: GoogleFonts.inter(
-                      fontSize: 13.5,
-                      color: Colors.white.withOpacity(0.9),
-                      height: 1.5,
-                    ),
+          // Row with luxury label indicator tags
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isUser
+                      ? const Color(0xFFD980FF).withOpacity(0.08)
+                      : AtelierTheme.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: isUser
+                        ? const Color(0xFFD980FF).withOpacity(0.2)
+                        : AtelierTheme.accent.withOpacity(0.2),
+                    width: 0.6,
                   ),
                 ),
-                
-                // Wardrobe limited warning box
-                if (!isUser && msg.wardrobeLimited)
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AtelierTheme.warning.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.info_outline, color: Colors.orange, size: 14),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Limited Wardrobe Choice Detected. Results might be mismatched or fallback items.",
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: Colors.orange.shade300,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                child: Text(
+                  isUser ? "CLIENT" : "STYLIST",
+                  style: GoogleFonts.outfit(
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: isUser ? const Color(0xFFD980FF) : AtelierTheme.accent,
+                    letterSpacing: 2.0,
                   ),
-
-                // Recommendations Carousel/Cards list
-                if (!isUser && msg.recommendations.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _buildRecommendationsList(msg.recommendations),
-                ],
-              ],
-            ),
-          ),
-          if (isUser) ...[
-            const SizedBox(width: 32),
-          ] else ...[
-            const SizedBox(width: 24),
-          ]
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationsList(List<OutfitRecommendation> recommendations) {
-    return Container(
-      height: 390,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: recommendations.length,
-        itemBuilder: (context, index) {
-          final rec = recommendations[index];
-          return _buildOutfitCard(rec, index + 1, recommendations.length);
-        },
-      ),
-    );
-  }
-
-  Widget _buildOutfitCard(OutfitRecommendation rec, int optionIndex, int totalOptions) {
-    return Container(
-      width: 310,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.01),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Lookbook Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              color: Colors.white.withOpacity(0.02),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "LOOKBOOK 0$optionIndex / 0$totalOptions",
-                    style: GoogleFonts.outfit(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                      letterSpacing: 2.0,
-                    ),
-                  ),
-                  Container(
-                    width: 5,
-                    height: 5,
-                    decoration: const BoxDecoration(
-                      color: AtelierTheme.accent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            
-            // Asymmetrical Editorial Grid Layout
-            Expanded(
-              child: Row(
-                children: [
-                  // Main Item: TOP (takes left side)
-                  Expanded(
-                    flex: 11,
-                    child: _buildEditorialItem('TOP', rec.top),
-                  ),
-                  Container(width: 0.8, color: Colors.white.withOpacity(0.05)), // Vertical thin divider
-                  // Stacking BOTTOM and SHOES (takes right side)
-                  Expanded(
-                    flex: 9,
-                    child: Column(
-                      children: [
-                        Expanded(child: _buildEditorialItem('BOTTOM', rec.bottom)),
-                        Container(height: 0.8, color: Colors.white.withOpacity(0.05)), // Horizontal thin divider
-                        Expanded(child: _buildEditorialItem('SHOES', rec.shoes)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Collapsible Insights
-            _buildCollapsibleReason(rec.reason),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditorialItem(String slotLabel, WardrobeItem? item) {
-    final hasItem = item != null;
-    return Container(
-      color: Colors.transparent,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Item Image or Placeholder
-          if (hasItem && item.hasValidImageUrl)
-            Image.network(
-              item.imagePath!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image_outlined, color: Colors.white12, size: 24),
-              ),
-            )
-          else
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    slotLabel == 'TOP'
-                        ? Icons.checkroom_outlined
-                        : slotLabel == 'BOTTOM'
-                            ? Icons.layers_outlined
-                            : Icons.auto_awesome_outlined,
-                    color: Colors.white.withOpacity(0.04),
-                    size: 24,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'NO ITEM',
-                    style: GoogleFonts.manrope(
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white.withOpacity(0.08),
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-          // Slot label overlay
-          Positioned(
-            left: 12,
-            top: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                slotLabel,
+              const SizedBox(width: 12),
+              Text(
+                isUser ? "REQUEST" : "ANALYSIS",
                 style: GoogleFonts.outfit(
-                  fontSize: 7.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white70,
-                  letterSpacing: 1.0,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white24,
+                  letterSpacing: 1.5,
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Pure text block (no generic box/bubble background!)
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: Text(
+              msg.text,
+              style: GoogleFonts.inter(
+                fontSize: 13.5,
+                color: Colors.white.withOpacity(0.9),
+                height: 1.5,
               ),
             ),
           ),
           
-          // Blur detail tag for item
-          if (hasItem)
-            Positioned(
-              left: 8,
-              right: 8,
-              bottom: 8,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    color: Colors.black.withOpacity(0.45),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          item.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "${item.color} • ${item.fit}",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 7.5,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ],
+          // Wardrobe limited warning box
+          if (!isUser && msg.wardrobeLimited)
+            Container(
+              margin: const EdgeInsets.only(top: 8, left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AtelierTheme.warning.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AtelierTheme.warning.withOpacity(0.15)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 14),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Limited Wardrobe Choice Detected. Results might be mismatched or fallback items.",
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.orange.shade300,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
+
+          // 3D Overlapping Collage Layout (Replaces grid cards list)
+          if (!isUser && msg.recommendations.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            OutfitCollageWidget(recommendations: msg.recommendations),
+          ],
+          
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white10, height: 1, thickness: 0.5),
         ],
       ),
     );
-  }
-
-  Widget _buildCollapsibleReason(String reason) {
-    return _CollapsibleReasonWidget(reason: reason);
   }
 
   Widget _buildQuickSuggestions(bool isLoading) {
@@ -504,8 +354,8 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: ActionChip(
-              backgroundColor: Colors.white.withOpacity(0.015),
-              side: BorderSide(color: Colors.white.withOpacity(0.08), width: 0.6),
+              backgroundColor: Colors.white.withOpacity(0.01),
+              side: BorderSide(color: Colors.white.withOpacity(0.06), width: 0.6),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               label: Text(
                 display,
@@ -536,9 +386,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.015),
+                color: Colors.white.withOpacity(0.01),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.8),
+                border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.8),
               ),
               child: Row(
                 children: [
@@ -551,7 +401,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                       decoration: InputDecoration(
                         hintText: 'STATE YOUR REQUISITE...',
                         hintStyle: GoogleFonts.outfit(
-                          color: Colors.white30,
+                          color: Colors.white24,
                           fontSize: 11,
                           letterSpacing: 1.5,
                         ),
@@ -570,8 +420,15 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isLoading ? Colors.white.withOpacity(0.02) : Colors.white.withOpacity(0.9),
+                color: isLoading ? Colors.white.withOpacity(0.01) : Colors.white.withOpacity(0.95),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  if (!isLoading)
+                    BoxShadow(
+                      color: AtelierTheme.accent.withOpacity(0.2),
+                      blurRadius: 8,
+                    )
+                ],
               ),
               child: Icon(
                 Icons.arrow_upward,
@@ -599,9 +456,9 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.01),
+              color: Colors.white.withOpacity(0.008),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.03), width: 0.6),
+              border: Border.all(color: Colors.white.withOpacity(0.025), width: 0.6),
             ),
             child: Row(
               children: [
@@ -632,104 +489,255 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
   }
 }
 
-class _CollapsibleReasonWidget extends StatefulWidget {
-  final String reason;
-  const _CollapsibleReasonWidget({required this.reason});
+// 3D Overlapping Editorial Collage Widget
+class OutfitCollageWidget extends StatefulWidget {
+  final List<OutfitRecommendation> recommendations;
+  const OutfitCollageWidget({super.key, required this.recommendations});
 
   @override
-  State<_CollapsibleReasonWidget> createState() => _CollapsibleReasonWidgetState();
+  State<OutfitCollageWidget> createState() => _OutfitCollageWidgetState();
 }
 
-class _CollapsibleReasonWidgetState extends State<_CollapsibleReasonWidget> {
-  bool _isExpanded = false;
+class _OutfitCollageWidgetState extends State<OutfitCollageWidget> {
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final bulletPoints = widget.reason
+    if (widget.recommendations.isEmpty) return const SizedBox.shrink();
+    final rec = widget.recommendations[_selectedIndex];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Tab selector row
+        Row(
+          children: List.generate(widget.recommendations.length, (index) {
+            final isSelected = index == _selectedIndex;
+            return GestureDetector(
+              onTap: () => setState(() => _selectedIndex = index),
+              child: Container(
+                margin: const EdgeInsets.only(right: 12, bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected ? AtelierTheme.accent.withOpacity(0.08) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? AtelierTheme.accent.withOpacity(0.3) : Colors.white.withOpacity(0.06),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  "EDITION 0${index + 1}",
+                  style: GoogleFonts.outfit(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? AtelierTheme.accent : Colors.white60,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+
+        // 3D overlapping collage stack
+        Container(
+          height: 380,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.005),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.02), width: 0.8),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Bottom Card (stacked first so it stays behind)
+              Positioned(
+                right: 24,
+                top: 40,
+                child: Transform.rotate(
+                  angle: 0.04, // 2 degrees
+                  child: _buildCollageCard('BOTTOM', rec.bottom, 140, 210),
+                ),
+              ),
+              // Top Card (stacked on top, overlapping Bottom)
+              Positioned(
+                left: 24,
+                top: 20,
+                child: Transform.rotate(
+                  angle: -0.05, // -3 degrees
+                  child: _buildCollageCard('TOP', rec.top, 160, 240),
+                ),
+              ),
+              // Shoes Card (stacked on top in the middle foreground)
+              Positioned(
+                left: 110,
+                top: 200,
+                child: Transform.rotate(
+                  angle: -0.02,
+                  child: _buildCollageCard('SHOES', rec.shoes, 110, 110),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        // Styling notes
+        _buildEditorialInsights(rec.reason),
+      ],
+    );
+  }
+
+  Widget _buildCollageCard(String label, WardrobeItem? item, double width, double height) {
+    final hasItem = item != null;
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AtelierTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.6),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasItem && item.hasValidImageUrl)
+              Image.network(item.imagePath!, fit: BoxFit.cover)
+            else
+              Center(
+                child: Icon(
+                  label == 'TOP' ? Icons.checkroom : label == 'BOTTOM' ? Icons.layers : Icons.auto_awesome,
+                  color: Colors.white10,
+                  size: 24,
+                ),
+              ),
+            // Minimal Glass label
+            if (hasItem)
+              Positioned(
+                left: 8,
+                right: 8,
+                bottom: 8,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      color: Colors.black.withOpacity(0.5),
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // Small Category Overlay
+            Positioned(
+              left: 10,
+              top: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  label,
+                  style: GoogleFonts.outfit(
+                    fontSize: 7,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white60,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditorialInsights(String reason) {
+    final bulletPoints = reason
         .split('\n')
         .map((e) => e.replaceAll(RegExp(r'^[•\-\*\s]+'), '').trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () {
-            setState(() {
-              _isExpanded = !_isExpanded;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            color: Colors.white.withOpacity(0.01),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _isExpanded ? "CLOSE EDITORIAL NOTES" : "VIEW EDITORIAL NOTES",
-                  style: GoogleFonts.outfit(
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                    color: AtelierTheme.accent,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                Icon(
-                  _isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                  color: AtelierTheme.accent,
-                  size: 14,
-                ),
-              ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.005),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.02), width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "EDITORIAL INSIGHTS",
+            style: GoogleFonts.outfit(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: AtelierTheme.accent,
+              letterSpacing: 2.0,
             ),
           ),
-        ),
-        if (_isExpanded)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.015),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (bulletPoints.isEmpty)
-                  Text(
-                    widget.reason,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
-                  )
-                else
-                  ...bulletPoints.map((pt) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 5.0, right: 8.0),
-                              child: Icon(Icons.square, size: 3, color: AtelierTheme.accent),
-                            ),
-                            Expanded(
-                              child: Text(
-                                pt,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: Colors.white.withOpacity(0.8),
-                                  height: 1.5,
-                                ),
-                              ),
-                            ),
-                          ],
+          const SizedBox(height: 12),
+          if (bulletPoints.isEmpty)
+            Text(
+              reason,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: Colors.white70,
+                height: 1.6,
+              ),
+            )
+          else
+            ...bulletPoints.map((pt) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6.0, right: 8.0),
+                        child: Icon(Icons.circle, size: 3, color: AtelierTheme.accent),
+                      ),
+                      Expanded(
+                        child: Text(
+                          pt,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white70,
+                            height: 1.5,
+                          ),
                         ),
-                      )),
-              ],
-            ),
-          ),
-      ],
+                      ),
+                    ],
+                  ),
+                )),
+        ],
+      ),
     );
   }
 }
