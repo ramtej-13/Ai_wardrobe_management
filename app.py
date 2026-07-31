@@ -158,6 +158,15 @@ def get_wardrobe_or_error(db_id: str, enforce_user: bool = True) -> Wardrobe:
 @app.get("/", tags=["System"])
 def root(request: Request):
     """Health check and API overview."""
+    # If browser accepts HTML, serve our design React client
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        html_path = os.path.join("static", "index.html")
+        if os.path.exists(html_path):
+            from fastapi.responses import HTMLResponse
+            with open(html_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+
     db_id = get_db_identifier(request)
     # Attempt to load to check database connection
     try:

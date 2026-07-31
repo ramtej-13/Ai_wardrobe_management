@@ -1,0 +1,2112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Wardrobe — Dark Couture Brutalism</title>
+  <!-- Google Fonts Imports -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  
+  <!-- React and Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Color and Design Tokens */
+    :root {
+      --bg: #080810;
+      --surface: #10101E;
+      --surface-2: #16162A;
+      --border: #1E1A38;
+      --border-strong: #2D2850;
+      --accent: #A855F7;
+      --accent-dim: rgba(168, 85, 247, 0.08); /* 8% opacity */
+      --accent-mid: #7C3AED;
+      --text-primary: #E8E0FF;
+      --text-secondary: #6B5F9E;
+      --text-ghost: #2D2850;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+    }
+
+    /* Global Rules */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: none; /* Hide scrollbar for Firefox */
+    }
+    *::-webkit-scrollbar {
+      display: none; /* Hide scrollbar for Chrome/Safari */
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 60px 0;
+    }
+
+    /* Main Scroll Container representing one tall React page */
+    .app-viewport-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      width: 100%;
+      max-width: 390px;
+    }
+
+    /* Screen Enclosure: iPhone 15 Pro Dimensions */
+    .mobile-screen-enclosure {
+      width: 390px;
+      height: 844px;
+      min-height: 844px;
+      background-color: var(--bg);
+      border: 0.5px solid var(--border);
+      position: relative;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Screen Label Separator */
+    .screen-separator-container {
+      width: 390px;
+      text-align: center;
+      position: relative;
+      margin: 40px 0 20px 0;
+    }
+    .screen-separator-line {
+      width: 100%;
+      height: 0.5px;
+      background-color: var(--border);
+      position: absolute;
+      top: 50%;
+      left: 0;
+      z-index: 1;
+    }
+    .screen-separator-label {
+      font-family: 'DM Mono', monospace;
+      font-weight: 300;
+      font-size: 7px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-ghost);
+      background-color: var(--bg);
+      padding: 0 16px;
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+    }
+
+    /* Typography Classes */
+    .font-display-hero {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 48px;
+      letter-spacing: -0.02em;
+      line-height: 1.0;
+    }
+    .font-title-header {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 32px;
+      letter-spacing: -0.01em;
+      line-height: 1.0;
+    }
+    .font-heading-mono {
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .font-label-mono {
+      font-family: 'DM Mono', monospace;
+      font-weight: 400;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .font-micro-mono {
+      font-family: 'DM Mono', monospace;
+      font-weight: 300;
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .font-body-text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+      line-height: 1.6;
+    }
+    .font-caption-text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 12px;
+      letter-spacing: 0em;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Animations */
+    @keyframes pulseOpacity {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1.0; }
+    }
+    .animate-pulse-opacity {
+      animation: pulseOpacity 1.2s ease-in-out infinite;
+    }
+
+    @keyframes laserSweep {
+      0% { top: 0%; }
+      50% { top: 100%; }
+      100% { top: 0%; }
+    }
+    .scanning-laser-line {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: var(--accent);
+      z-index: 10;
+      animation: laserSweep 1.8s ease-in-out infinite;
+    }
+
+    @keyframes spinWheel {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-custom {
+      animation: spinWheel 2s linear infinite;
+      display: inline-block;
+    }
+
+    /* Form Fields */
+    .brutalist-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .brutalist-input-field {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 0.5px solid var(--text-ghost);
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 22px;
+      color: var(--text-primary);
+      padding: 8px 0;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .brutalist-input-field:focus {
+      border-bottom: 0.5px solid var(--accent);
+    }
+    .brutalist-input-field::placeholder {
+      color: var(--text-ghost);
+    }
+
+    /* Brutalist Buttons (Never filled with accent color) */
+    .brutalist-btn {
+      width: 100%;
+      height: 48px;
+      background: transparent;
+      border: 0.5px solid var(--text-secondary);
+      font-family: 'DM Mono', monospace;
+      font-weight: 400;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .brutalist-btn:hover, .brutalist-btn:active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Navigation Pinned to bottom of Screens */
+    .screen-bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      border-top: 0.5px solid var(--border);
+      background-color: rgba(8, 8, 16, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 90;
+    }
+    .nav-tab-item {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-weight: 300;
+      font-size: 8px;
+      letter-spacing: 0.25em;
+      color: var(--text-ghost);
+      cursor: pointer;
+      position: relative;
+      text-transform: uppercase;
+    }
+    .nav-tab-item.active {
+      color: var(--accent);
+    }
+    .nav-tab-active-indicator {
+      position: absolute;
+      top: -0.5px;
+      width: 24px;
+      height: 1px;
+      background-color: var(--accent);
+    }
+
+    /* Lookbook Card in Chat screen */
+    .lookbook-card {
+      width: 300px;
+      border: 0.5px solid var(--border);
+      background-color: var(--surface);
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .lookbook-grid {
+      display: flex;
+      height: 260px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .lookbook-left {
+      width: 55%;
+      height: 100%;
+      position: relative;
+      background-color: var(--surface-2);
+      border-right: 0.5px solid var(--border);
+    }
+    .lookbook-right {
+      width: 45%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .lookbook-right-top {
+      height: 50%;
+      position: relative;
+      background-color: var(--surface-2);
+      border-bottom: 0.5px solid var(--border);
+    }
+    .lookbook-right-bottom {
+      height: 50%;
+      position: relative;
+      background-color: var(--surface-2);
+    }
+    .glassmorphism-tag {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 6px 8px;
+      backdrop-filter: blur(12px);
+      background: rgba(8, 8, 16, 0.7);
+      border-top: 0.5px solid var(--border);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 9px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lookbook-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Notification dot or alerts styles */
+    .alert-indicator {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* Screen 6 Wardrobe bottom sheet */
+    .bottom-sheet-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(8, 8, 16, 0.6);
+      z-index: 99;
+    }
+    .bottom-sheet-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--surface);
+      border-top: 0.5px solid var(--border);
+      padding: 16px 24px 24px 24px;
+      z-index: 100;
+    }
+    .bottom-sheet-handle {
+      width: 32px;
+      height: 1px;
+      background-color: var(--border-strong);
+      margin: 0 auto 16px auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- React Root Element -->
+  <div id="root" class="app-viewport-container"></div>
+
+  <!-- React Code with Babel -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Direct Web API integration helper
+    const api = {
+      email: localStorage.getItem('active_email') || 'ramtejyaga@gmail.com',
+      setEmail(newEmail) {
+        this.email = newEmail;
+        localStorage.setItem('active_email', newEmail);
+      },
+      getHeaders() {
+        return {
+          'Content-Type': 'application/json',
+          'X-User-Email': this.email
+        };
+      },
+      async checkProfile() {
+        try {
+          const res = await fetch('/user', { headers: this.getHeaders() });
+          return res.ok;
+        } catch {
+          return false;
+        }
+      },
+      async getProfile() {
+        const res = await fetch('/user', { headers: this.getHeaders() });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async saveProfile(profile) {
+        const res = await fetch('/user', {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(profile)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async getItems() {
+        const res = await fetch('/items', { headers: this.getHeaders() });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async addItem(item) {
+        const res = await fetch('/items', {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(item)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async deleteItem(itemId) {
+        const res = await fetch(`/items/${itemId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders()
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async uploadImage(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/items/upload', {
+          method: 'POST',
+          headers: { 'X-User-Email': this.email },
+          body: formData
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async analyzeImage(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/items/analyze', {
+          method: 'POST',
+          headers: { 'X-User-Email': this.email },
+          body: formData
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async getAnalytics() {
+        const res = await fetch('/wardrobe/analytics', { headers: this.getHeaders() });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      async chatStylist(message, history) {
+        const res = await fetch('/recommend/chat', {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ message, history })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+    };
+
+    // Default Fallback / Mock Wardrobe Data for offline display
+    const defaultWardrobeItems = [
+      { id: 'C001', name: 'WHITE OXFORD', category: 'Shirts', color: 'White', fit: 'SLIM FIT', description: 'Oxford cotton slim shirt with button-down collar.', image_path: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C002', name: 'NAVY CHINOS', category: 'Pants', color: 'Navy', fit: 'REGULAR FIT', description: 'Medium weight cotton twill tailored trousers.', image_path: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C003', name: 'BLACK DERBY SHOES', category: 'Shoes', color: 'Black', fit: 'REGULAR FIT', description: 'Classic full-grain leather derby shoes with welted sole.', image_path: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C004', name: 'GREY WOOL COAT', category: 'Jackets', color: 'Grey', fit: 'OVERSIZED', description: 'Heavyweight felted wool long double-breasted coat.', image_path: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C005', name: 'BEIGE COTTON KNIT', category: 'Shirts', color: 'Beige', fit: 'RELAXED FIT', description: 'Ribbed collar crewneck knit sweater.', image_path: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C006', name: 'BROWN LEATHER LOAFERS', category: 'Shoes', color: 'Brown', fit: 'REGULAR FIT', description: 'Italian leather penny loafers.', image_path: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=400&auto=format&fit=crop&q=60' },
+      { id: 'C007', name: 'SILK BLACK SCARF', category: 'Accessories', color: 'Black', fit: 'REGULAR FIT', description: '100% mulberry silk lightweight neck scarf.', image_path: 'https://images.unsplash.com/photo-1584030373081-f37b7bb4fa8e?w=400&auto=format&fit=crop&q=60' }
+    ];
+
+    const defaultProfile = {
+      name: 'Ramtej Yaga',
+      age: 26,
+      gender: 'Male',
+      height: 175.0,
+      weight: 68.0,
+      body_type: 'Inverted Triangle',
+      skin_tone: 'Tan',
+      undertone: 'Warm',
+      hair_color: 'Black',
+      face_shape: 'Oval',
+      estimated_height: "5'9\""
+    };
+
+    function App() {
+      // Shared App States
+      const [emailInput, setEmailInput] = useState(api.email);
+      const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
+      const [otpStep, setOtpStep] = useState(1); // 1: Email, 2: OTP Box
+      const [activeTab, setActiveTab] = useState('HOME'); // Navigation Tab State: HOME, WARDROBE, STYLE, PROFILE
+      
+      // User Biometrics States (Screen 3)
+      const [userHeight, setUserHeight] = useState(170);
+      const [userWeight, setUserWeight] = useState(65);
+      const [userAge, setUserAge] = useState(25);
+      const [userGender, setUserGender] = useState('MALE');
+
+      // Database-synced states
+      const [profile, setProfile] = useState(defaultProfile);
+      const [wardrobe, setWardrobe] = useState(defaultWardrobeItems);
+      const [selectedArchiveItem, setSelectedArchiveItem] = useState(null); // Screen 6 bottom sheet item
+      const [archiveFilter, setArchiveFilter] = useState('ALL'); // Screen 6 filter active chip
+      
+      // Screen 4 Profile Upload Zones & Scanning Overlay Simulation
+      const [profilePhotos, setProfilePhotos] = useState({ front: null, side: null, face: null });
+      const [isProfileScanning, setIsProfileScanning] = useState(false);
+      const [profileScanStep, setProfileScanStep] = useState(0); // logs counter
+      const profileLogs = [
+        "■ FABRIC TEXTURE MAPPED",
+        "■ COLOR PALETTE EXTRACTED",
+        "■ CATEGORY CLASSIFIED",
+        "■ FIT PROFILE GENERATED"
+      ];
+
+      // Screen 7 Stylist Chat states
+      const [chatMessages, setChatMessages] = useState([
+        { role: 'model', text: 'Good morning, Ramtej. I have curated outfits from your wardrobe archive based on your silhouette. Select a suggestion below or input your requisite.' }
+      ]);
+      const [chatInputText, setChatInputText] = useState('');
+      const [isStylistTyping, setIsStylistTyping] = useState(false);
+      const [typingDots, setTypingDots] = useState('');
+      const [expandedLookbookId, setExpandedLookbookId] = useState(null);
+
+      // Screen 10 Scanning clothing item state
+      const [itemPhoto, setItemPhoto] = useState(null);
+      const [isItemScanning, setIsItemScanning] = useState(false);
+      const [itemScanStep, setItemScanStep] = useState(0);
+      const [detectedItemData, setDetectedItemData] = useState({
+        name: 'WHITE OXFORD',
+        category: 'SHIRTS',
+        color: 'WHITE',
+        fit: 'SLIM'
+      });
+      const [showResultsPanel, setShowResultsPanel] = useState(false);
+      const [activeEditField, setActiveEditField] = useState(null);
+
+      // Sync data on email setup/change
+      useEffect(() => {
+        loadDataFromBackend();
+      }, [api.email]);
+
+      // Blink animation helper for active OTP box and loading status
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setTypingDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+        }, 400);
+        return () => clearInterval(interval);
+      }, []);
+
+      const loadDataFromBackend = async () => {
+        try {
+          const profileData = await api.getProfile();
+          setProfile(profileData);
+          setUserHeight(parseInt(profileData.height) || 170);
+          setUserWeight(parseInt(profileData.weight) || 65);
+          setUserAge(parseInt(profileData.age) || 25);
+          setUserGender(profileData.gender ? profileData.gender.toUpperCase() : 'MALE');
+        } catch (e) {
+          console.log("No backend profile found, using local default", e);
+        }
+
+        try {
+          const itemsData = await api.getItems();
+          if (itemsData && itemsData.items) {
+            setWardrobe(itemsData.items);
+          }
+        } catch (e) {
+          console.log("No backend wardrobe found, using local default items", e);
+        }
+      };
+
+      // OTP Input handler
+      const handleOtpChange = (index, value) => {
+        if (value.length > 1) return;
+        const newOtp = [...otpCode];
+        newOtp[index] = value;
+        setOtpCode(newOtp);
+
+        // Auto focus next box
+        if (value && index < 5) {
+          const nextInput = document.getElementById(`otp-box-${index + 1}`);
+          if (nextInput) nextInput.focus();
+        }
+      };
+
+      // Trigger OTP access code simulation
+      const triggerOtpSend = () => {
+        if (!emailInput.endsWith('@gmail.com')) {
+          alert('GMAIL ONLY. Please enter a valid @gmail.com address.');
+          return;
+        }
+        api.setEmail(emailInput);
+        setOtpStep(2);
+      };
+
+      // Authenticate simulation
+      const verifyOtpCode = async () => {
+        const fullCode = otpCode.join('');
+        if (fullCode.length < 6) return;
+        
+        // Try creating/syncing user with DB
+        try {
+          await api.getProfile();
+        } catch {
+          // If profile missing, register default profile
+          try {
+            await api.saveProfile({
+              name: 'Ramtej Yaga',
+              age: userAge,
+              gender: userGender,
+              height: userHeight,
+              weight: userWeight,
+              location: 'Hyderabad',
+              preferred_style: 'Minimalist Brutalism'
+            });
+          } catch (e) {
+            console.log("Failed to sync profile:", e);
+          }
+        }
+        await loadDataFromBackend();
+        alert('AUTHENTICATED SUCCESSFULLY');
+        setActiveTab('HOME');
+      };
+
+      // Body metrics adjustments
+      const updateMetrics = async (field, increment) => {
+        let currentAge = userAge;
+        let currentHeight = userHeight;
+        let currentWeight = userWeight;
+
+        if (field === 'age') {
+          currentAge = userAge + increment;
+          setUserAge(currentAge);
+        } else if (field === 'height') {
+          currentHeight = userHeight + increment;
+          setUserHeight(currentHeight);
+        } else if (field === 'weight') {
+          currentWeight = userWeight + increment;
+          setUserWeight(currentWeight);
+        }
+
+        // Auto sync with database
+        try {
+          await api.saveProfile({
+            name: profile.name || 'Ramtej Yaga',
+            age: currentAge,
+            gender: userGender,
+            height: currentHeight,
+            weight: currentWeight,
+            location: profile.location || 'Hyderabad',
+            body_type: profile.body_type || 'Inverted Triangle',
+            skin_tone: profile.skin_tone || 'Tan',
+            undertone: profile.undertone || 'Warm',
+            face_shape: profile.face_shape || 'Oval',
+            estimated_height: `${Math.floor(currentHeight/30.48)}'${Math.round((currentHeight%30.48)/2.54)}"`
+          });
+          const profileData = await api.getProfile();
+          setProfile(profileData);
+        } catch (e) {
+          console.log("Offline metric updated:", e);
+        }
+      };
+
+      const selectGender = async (genderVal) => {
+        setUserGender(genderVal);
+        try {
+          await api.saveProfile({
+            ...profile,
+            gender: genderVal
+          });
+          const profileData = await api.getProfile();
+          setProfile(profileData);
+        } catch (e) {
+          console.log("Offline gender select:", e);
+        }
+      };
+
+      // Screen 4 Bio Scanner Trigger
+      const runBiometricScan = () => {
+        setIsProfileScanning(true);
+        setProfileScanStep(0);
+        
+        let currentStep = 0;
+        const interval = setInterval(() => {
+          currentStep++;
+          setProfileScanStep(currentStep);
+          if (currentStep >= 4) {
+            clearInterval(interval);
+            setIsProfileScanning(false);
+            // Autocomplete profile analytics
+            setProfile(prev => ({
+              ...prev,
+              body_type: 'Inverted Triangle',
+              skin_tone: 'Tan',
+              undertone: 'Warm',
+              face_shape: 'Oval'
+            }));
+            alert("BIOMETRIC ANALYSIS COMPLETE");
+          }
+        }, 1200);
+      };
+
+      // Screen 7 Chat engine
+      const sendChatMessage = async (presetText) => {
+        const text = presetText || chatInputText;
+        if (!text.trim()) return;
+
+        const newMessages = [...chatMessages, { role: 'user', text }];
+        setChatMessages(newMessages);
+        setChatInputText('');
+        setIsStylistTyping(true);
+
+        try {
+          const chatHistory = newMessages.map(m => ({
+            role: m.role === 'model' ? 'model' : 'user',
+            text: m.text
+          }));
+
+          const response = await api.chatStylist(text, chatHistory.slice(0, -1));
+          setChatMessages(prev => [
+            ...prev,
+            {
+              role: 'model',
+              text: response.chat_response,
+              recommendations: response.recommendations
+            }
+          ]);
+        } catch (e) {
+          console.log("Offline Stylist fallback simulated:", e);
+          setTimeout(() => {
+            setChatMessages(prev => [
+              ...prev,
+              {
+                role: 'model',
+                text: `I have compiled a lookup based on your ${profile.body_type} body type and ${profile.undertone} undertone coordinates. Here are suitable styling layouts.`,
+                recommendations: [
+                  {
+                    top: wardrobe[0] || defaultWardrobeItems[0],
+                    bottom: wardrobe[1] || defaultWardrobeItems[1],
+                    shoes: wardrobe[2] || defaultWardrobeItems[2],
+                    reason: "• Monochromatic balance using structured silhouettes.\n• Designed to enhance shoulder proportions."
+                  }
+                ]
+              }
+            ]);
+          }, 1500);
+        } finally {
+          setIsStylistTyping(false);
+        }
+      };
+
+      // Screen 10 Scanner Trigger
+      const handleImageSelectSimulate = () => {
+        setItemPhoto("https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=60");
+        setIsItemScanning(true);
+        setItemScanStep(0);
+
+        let current = 0;
+        const interval = setInterval(() => {
+          current++;
+          setItemScanStep(current);
+          if (current >= 4) {
+            clearInterval(interval);
+            setIsItemScanning(false);
+            setShowResultsPanel(true);
+            setDetectedItemData({
+              name: 'BLACK RAIN JACKET',
+              category: 'JACKETS',
+              color: 'BLACK',
+              fit: 'OVERSIZED'
+            });
+          }
+        }, 1000);
+      };
+
+      // Save scanned item to DB
+      const saveScannedItem = async () => {
+        const itemObj = {
+          name: detectedItemData.name,
+          category: detectedItemData.category.charAt(0).toUpperCase() + detectedItemData.category.slice(1).toLowerCase(),
+          color: detectedItemData.color.charAt(0).toUpperCase() + detectedItemData.color.slice(1).toLowerCase(),
+          fit: detectedItemData.fit + " FIT",
+          description: "Scan uploaded clothing classification.",
+          image_path: itemPhoto || "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=60",
+          date_added: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+          await api.addItem(itemObj);
+          await loadDataFromBackend();
+          alert('SAVED TO WARDROBE DATABASE');
+          setShowResultsPanel(false);
+          setItemPhoto(null);
+          setActiveTab('WARDROBE');
+        } catch {
+          // offline simulation
+          const localNew = {
+            id: `C00${wardrobe.length + 1}`,
+            ...itemObj
+          };
+          setWardrobe([...wardrobe, localNew]);
+          alert('SAVED (OFFLINE FALLBACK MODE)');
+          setShowResultsPanel(false);
+          setItemPhoto(null);
+          setActiveTab('WARDROBE');
+        }
+      };
+
+      // Delete item
+      const deleteArchiveItem = async (itemId) => {
+        if (!confirm("Are you sure you want to delete this archive item?")) return;
+        try {
+          await api.deleteItem(itemId);
+          await loadDataFromBackend();
+          setSelectedArchiveItem(null);
+          alert('ITEM REMOVED');
+        } catch {
+          setWardrobe(wardrobe.filter(w => w.id !== itemId));
+          setSelectedArchiveItem(null);
+          alert('REMOVED (OFFLINE MODE)');
+        }
+      };
+
+      // Category breakdown calculation for Screen 9
+      const getCategoryBreakdowns = () => {
+        const categories = ["Shirts", "Pants", "Shoes", "Jackets", "Accessories"];
+        return categories.map(cat => {
+          const count = wardrobe.filter(w => w.category && w.category.toLowerCase() === cat.toLowerCase()).length;
+          return {
+            name: cat.toUpperCase(),
+            count: count.toString().padStart(2, '0'),
+            percentage: wardrobe.length > 0 ? (count / wardrobe.length) * 100 : 0
+          };
+        });
+      };
+
+      return (
+        <React.Fragment>
+          {/* SCREEN 1 — SPLASH */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 01 — SPLASH</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {/* Logo Mark */}
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '0.5px solid var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'transparent'
+              }}>
+                <div className="animate-pulse-opacity" style={{
+                  width: '14px',
+                  height: '14px',
+                  backgroundColor: 'var(--accent)',
+                  transform: 'rotate(45deg)'
+                }}></div>
+              </div>
+
+              {/* Logo Text */}
+              <div className="font-label-mono" style={{
+                marginTop: '20px',
+                fontSize: '9px',
+                letterSpacing: '0.5em',
+                color: 'var(--accent)',
+                transition: 'color 1.2s ease-in'
+              }}>
+                WARDROBE
+              </div>
+
+              {/* Minimal line */}
+              <div style={{
+                marginTop: '24px',
+                width: '60px',
+                height: '0.5px',
+                backgroundColor: 'var(--accent)',
+                opacity: 0.8
+              }}></div>
+            </div>
+          </div>
+
+          {/* SCREEN 2 — LOGIN / AUTHENTICATION */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 02 — LOGIN / AUTHENTICATION</div>
+          </div>
+          <div className="mobile-screen-enclosure">
+            {/* Split Screen Top */}
+            <div style={{ height: '52%', position: 'relative', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {/* Minimal Logo top left */}
+                <div style={{ width: '12px', height: '12px', border: '0.5px solid var(--accent)' }}></div>
+                {/* Ghost label top right */}
+                <div className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '8px', letterSpacing: '0.4em' }}>
+                  AI WARDROBE
+                </div>
+              </div>
+              <div style={{ position: 'absolute', bottom: '24px', left: '24px' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>01 / AUTHENTICATE</span>
+              </div>
+            </div>
+
+            {/* Split border line */}
+            <div style={{ width: '100%', height: '0.5px', backgroundColor: 'var(--border)' }}></div>
+
+            {/* Split Screen Bottom: Form */}
+            <div style={{ height: '48%', padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              {otpStep === 1 ? (
+                <div>
+                  <div className="brutalist-input-wrapper">
+                    <input
+                      type="email"
+                      className="brutalist-input-field"
+                      placeholder="name@gmail.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                    />
+                  </div>
+                  <div className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '7px', marginTop: '8px', letterSpacing: '0.3em' }}>
+                    GMAIL ONLY · OTP AUTHENTICATION
+                  </div>
+
+                  <button className="brutalist-btn" style={{ marginTop: '40px' }} onClick={triggerOtpSend}>
+                    SEND ACCESS CODE
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', marginBottom: '16px', letterSpacing: '0.2em' }}>
+                    ENTER CODE SENT TO YOUR GMAIL
+                  </div>
+                  
+                  {/* OTP 6 Boxes */}
+                  <div style={{ display: 'flex', gap: '4px', marginBottom: '24px' }}>
+                    {otpCode.map((char, index) => (
+                      <input
+                        key={index}
+                        id={`otp-box-${index}`}
+                        type="text"
+                        maxLength="1"
+                        style={{
+                          width: '44px',
+                          height: '56px',
+                          border: char ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                          backgroundColor: 'var(--surface)',
+                          textAlign: 'center',
+                          color: 'var(--text-primary)',
+                          fontFamily: 'Cormorant Garamond, serif',
+                          fontWeight: '600',
+                          fontSize: '28px',
+                          outline: 'none',
+                          borderRadius: '0px'
+                        }}
+                        value={char}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                      />
+                    ))}
+                  </div>
+
+                  <button className="brutalist-btn" style={{ marginBottom: '16px' }} onClick={verifyOtpCode}>
+                    VERIFY ACCESS CODE
+                  </button>
+
+                  <div
+                    onClick={() => setOtpStep(1)}
+                    className="font-micro-mono"
+                    style={{ color: 'var(--text-secondary)', cursor: 'pointer', display: 'inline-block' }}
+                  >
+                    ← CHANGE EMAIL
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SCREEN 3 — ONBOARDING STEP 2: BODY METRICS */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 03 — BODY METRICS</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ padding: '24px' }}>
+            {/* Top progress strip */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <div style={{ width: '2px', height: '16px', backgroundColor: 'var(--accent)' }}></div>
+                <div style={{ width: '2px', height: '16px', backgroundColor: 'var(--accent)' }}></div>
+                <div style={{ width: '2px', height: '16px', backgroundColor: 'var(--border)' }}></div>
+                <div style={{ width: '2px', height: '16px', backgroundColor: 'var(--border)' }}></div>
+                <div style={{ width: '2px', height: '16px', backgroundColor: 'var(--border)' }}></div>
+              </div>
+              <span className="font-micro-mono" style={{ color: 'var(--accent)', letterSpacing: '0.3em' }}>02 / 05</span>
+            </div>
+
+            {/* Ghost Background Number */}
+            <div className="font-title-header" style={{
+              position: 'absolute',
+              top: '40px',
+              left: '-20px',
+              fontSize: '120px',
+              color: 'var(--surface)',
+              opacity: 0.4,
+              fontFamily: 'Cormorant Garamond, serif',
+              zIndex: 0,
+              userSelect: 'none'
+            }}>
+              02
+            </div>
+
+            {/* Main content layer */}
+            <div style={{ position: 'relative', zIndex: 1, marginTop: '48px' }}>
+              <div className="font-label-mono" style={{ color: 'var(--text-secondary)', fontSize: '10px', letterSpacing: '0.35em', marginBottom: '8px' }}>
+                BODY METRICS
+              </div>
+              <div className="font-caption-text" style={{ marginBottom: '40px' }}>
+                Precision data used by the AI Vision Engine to profile outfit proportions for your unique silhouette.
+              </div>
+
+              {/* Split row: Height */}
+              <div style={{ height: '64px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.25em' }}>HEIGHT</span>
+                <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '36px', color: 'var(--text-primary)' }}>{userHeight}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', marginRight: '8px' }}>CM</span>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('height', -1)}>−</button>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('height', 1)}>+</button>
+                </div>
+              </div>
+
+              {/* Split row: Weight */}
+              <div style={{ height: '64px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.25em' }}>WEIGHT</span>
+                <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '36px', color: 'var(--text-primary)' }}>{userWeight}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', marginRight: '8px' }}>KG</span>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('weight', -1)}>−</button>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('weight', 1)}>+</button>
+                </div>
+              </div>
+
+              {/* Split row: Age */}
+              <div style={{ height: '64px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.25em' }}>AGE</span>
+                <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '36px', color: 'var(--text-primary)' }}>{userAge}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', marginRight: '8px' }}>YRS</span>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('age', -1)}>−</button>
+                  <button style={{ width: '28px', height: '28px', border: '0.5px solid var(--border-strong)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => updateMetrics('age', 1)}>+</button>
+                </div>
+              </div>
+
+              {/* Gender selector */}
+              <div style={{ display: 'flex', width: '100%', border: '0.5px solid var(--border)', marginTop: '32px' }}>
+                {['MALE', 'FEMALE', 'OTHER'].map(g => {
+                  const isSelected = userGender === g;
+                  return (
+                    <div
+                      key={g}
+                      onClick={() => selectGender(g)}
+                      style={{
+                        flex: 1,
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRight: g !== 'OTHER' ? '0.5px solid var(--border)' : 'none',
+                        borderTop: isSelected ? '1px solid var(--accent)' : 'none',
+                        color: isSelected ? 'var(--accent)' : 'var(--text-secondary)',
+                        fontFamily: 'DM Mono, monospace',
+                        fontWeight: '400',
+                        fontSize: '9px',
+                        letterSpacing: '0.2em',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isSelected && <span style={{ marginRight: '4px' }}>◆</span>}
+                      {g}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action */}
+              <button className="brutalist-btn" style={{ marginTop: '48px' }} onClick={() => alert('METRICS CONFIGURED')}>
+                CONTINUE →
+              </button>
+            </div>
+          </div>
+
+          {/* SCREEN 4 — AI VISION SCAN */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 04 — AI VISION SCAN</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+              <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.3em' }}>04 / 05 — VISION SCAN</span>
+            </div>
+
+            <div className="font-title-header" style={{ color: 'var(--text-primary)', fontSize: '28px', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              CAPTURE YOUR FORM
+            </div>
+            <div className="font-caption-text" style={{ marginBottom: '32px' }}>
+              Three reference frames. Processed once by the AI Vision Engine. Never stored externally.
+            </div>
+
+            {/* Grid of upload zones */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', position: 'relative' }}>
+              {/* Scan sweep line */}
+              {isProfileScanning && <div className="scanning-laser-line" style={{ height: '0.5px' }}></div>}
+
+              {['front', 'side', 'face'].map((zoneKey) => {
+                const img = profilePhotos[zoneKey];
+                return (
+                  <div
+                    key={zoneKey}
+                    onClick={() => {
+                      // Simulating photo capture / upload
+                      const urls = {
+                        front: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=200&auto=format&fit=crop&q=60",
+                        side: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=60",
+                        face: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=60"
+                      };
+                      setProfilePhotos(prev => ({ ...prev, [zoneKey]: urls[zoneKey] }));
+                    }}
+                    style={{
+                      flex: 1,
+                      height: '130px',
+                      border: '0.5px solid var(--border)',
+                      position: 'relative',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: isProfileScanning ? 0.25 : 1.0,
+                      transition: 'opacity 0.3s ease'
+                    }}
+                  >
+                    {img ? (
+                      <React.Fragment>
+                        <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div className="font-micro-mono" style={{ position: 'absolute', topLeft: '4px', color: 'var(--accent)', fontSize: '8px', padding: '4px' }}>◆ {zoneKey.toUpperCase()}</div>
+                      </React.Fragment>
+                    ) : (
+                      <React.Fragment>
+                        {/* Crosshair */}
+                        <div style={{ position: 'relative', width: '20px', height: '20px' }}>
+                          <div style={{ position: 'absolute', top: '10px', left: '0', width: '20px', height: '0.5px', backgroundColor: 'var(--border-strong)' }}></div>
+                          <div style={{ position: 'absolute', top: '0', left: '10px', width: '0.5px', height: '20px', backgroundColor: 'var(--border-strong)' }}></div>
+                        </div>
+                        <span className="font-micro-mono" style={{ color: 'var(--border-strong)', fontSize: '7px', marginTop: '12px' }}>{zoneKey.toUpperCase()}</span>
+                      </React.Fragment>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sequential progress messages */}
+            <div style={{ minHeight: '80px', display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '24px' }}>
+              {isProfileScanning && profileLogs.map((log, index) => {
+                let color = 'var(--text-ghost)';
+                if (index < profileScanStep) color = 'var(--accent)';
+                else if (index === profileScanStep) color = 'var(--text-secondary)';
+
+                return (
+                  <div key={index} className="font-micro-mono" style={{ color, fontSize: '8px', letterSpacing: '0.2em' }}>
+                    {log}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              className="brutalist-btn"
+              onClick={runBiometricScan}
+              disabled={!profilePhotos.front || !profilePhotos.side || !profilePhotos.face || isProfileScanning}
+              style={{ opacity: (!profilePhotos.front || !profilePhotos.side || !profilePhotos.face) ? 0.4 : 1 }}
+            >
+              {isProfileScanning ? "PROCESSING ENGINE..." : "RUN ANALYSIS →"}
+            </button>
+          </div>
+
+          {/* SCREEN 5 — HOME DASHBOARD */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 05 — HOME DASHBOARD</div>
+          </div>
+          <div className="mobile-screen-enclosure">
+            {/* Top Bar */}
+            <div style={{ height: '48px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
+              {/* Hamburger */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer' }}>
+                <div style={{ width: '16px', height: '0.5px', backgroundColor: 'var(--text-secondary)' }}></div>
+                <div style={{ width: '16px', height: '0.5px', backgroundColor: 'var(--text-secondary)' }}></div>
+                <div style={{ width: '16px', height: '0.5px', backgroundColor: 'var(--text-secondary)' }}></div>
+              </div>
+              
+              <div className="font-label-mono" style={{ color: 'var(--text-ghost)', fontSize: '9px', letterSpacing: '0.5em' }}>
+                AI WARDROBE
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Outline Bell */}
+                <div style={{ width: '14px', height: '14px', border: '0.5px solid var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}></div>
+                {/* Square Profile Monogram */}
+                <div style={{ width: '26px', height: '26px', border: '0.5px solid var(--border-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '9px' }}>RJ</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Context Strip */}
+            <div style={{ height: '32px', backgroundColor: 'var(--surface)', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
+              <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '8px', letterSpacing: '0.15em' }}>📍 HYDERABAD · 31°C · HUMID</span>
+              <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '8px', letterSpacing: '0.15em' }}>◆ 3 LOOKS CURATED</span>
+            </div>
+
+            {/* Body of dashboard */}
+            <div style={{ padding: '24px 24px 80px 24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Hero Section */}
+              <div style={{ backgroundColor: 'var(--surface)', border: '0.5px solid var(--border)', padding: '32px', position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <div style={{ width: '8px', height: '8px', backgroundColor: 'var(--accent)', transform: 'rotate(45deg)' }}></div>
+                  <span className="font-micro-mono" style={{ color: 'var(--accent)', letterSpacing: '0.25em', fontSize: '7px' }}>STYLIST ACTIVE</span>
+                </div>
+
+                <div className="font-title-header" style={{ fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '42px', lineHeight: '1.0' }}>
+                  Good morning,
+                </div>
+                <div className="font-display-hero" style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '42px', lineHeight: '1.0' }}>
+                  Ramtej
+                </div>
+
+                <div style={{ width: '30%', height: '0.5px', backgroundColor: 'var(--border)', margin: '16px 0' }}></div>
+
+                <div className="font-caption-text" style={{ fontSize: '12px', lineHeight: '1.5' }}>
+                  {wardrobe.length} items · {profile.body_type} profile · 3 precision looks ready.
+                </div>
+
+                <div
+                  style={{ position: 'absolute', bottom: '16px', right: '16px', color: 'var(--accent)', cursor: 'pointer' }}
+                  className="font-micro-mono"
+                  onClick={() => setActiveTab('STYLE')}
+                >
+                  VIEW LOOKS →
+                </div>
+              </div>
+
+              {/* Stat Tiles */}
+              <div style={{ display: 'flex', borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)', height: '56px' }}>
+                <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: '600', fontSize: '28px', color: 'var(--text-primary)', lineHeight: '1.0' }}>{wardrobe.length}</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.25em' }}>ITEMS</span>
+                </div>
+                <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span className="font-label-mono" style={{ fontWeight: '400', fontSize: '12px', color: 'var(--text-primary)', letterSpacing: '0.1em', lineHeight: '1.2' }}>WHITE</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.25em' }}>DOMINANT</span>
+                </div>
+                <div style={{ flex: 1, padding: '8px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: '600', fontSize: '28px', color: 'var(--accent)', lineHeight: '1.0' }}>3</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.25em' }}>TODAY'S LOOKS</span>
+                </div>
+              </div>
+
+              {/* Section Divider */}
+              <div className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '7px', letterSpacing: '0.3em', textAlign: 'center' }}>
+                ── DAILY INTELLIGENCE ──
+              </div>
+
+              {/* Insights Carousel */}
+              <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
+                <div style={{ minWidth: '260px', width: '260px', height: '96px', border: '0.5px solid var(--border)', backgroundColor: 'var(--surface)', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '7px', letterSpacing: '0.25em' }}>COLOR ANALYSIS</span>
+                  <p className="font-caption-text" style={{ fontSize: '11px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                    White tones dominate 60% of your wardrobe. Add deep plum or forest green for premium tonal contrast.
+                  </p>
+                </div>
+                <div style={{ minWidth: '260px', width: '260px', height: '96px', border: '0.5px solid var(--border)', backgroundColor: 'var(--surface)', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '7px', letterSpacing: '0.25em' }}>FIT PROPORTIONS</span>
+                  <p className="font-caption-text" style={{ fontSize: '11px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                    Pairing your slim-fit tops with oversized jackets creates the signature brutalist silhouette.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div style={{ display: 'flex', border: '0.5px solid var(--border)', height: '80px' }}>
+                <div
+                  onClick={() => alert('NAVIGATING TO CLOTHING UPLOAD')}
+                  style={{ flex: 1, borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  {/* Camera icon */}
+                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '4px' }}>📷</span>
+                  <span className="font-label-mono" style={{ fontSize: '10px', color: 'var(--text-primary)' }}>＋ SCAN</span>
+                </div>
+                <div
+                  onClick={() => setActiveTab('STYLE')}
+                  style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  {/* Sparkle icon */}
+                  <span style={{ fontSize: '10px', color: 'var(--accent)', marginBottom: '4px' }}>✦</span>
+                  <span className="font-label-mono" style={{ fontSize: '10px', color: 'var(--accent)' }}>⋮ STYLE ME</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Nav */}
+            <div className="screen-bottom-nav">
+              {['HOME', 'WARDROBE', 'STYLE', 'PROFILE'].map((tab) => {
+                const isActive = activeTab === tab;
+                return (
+                  <div key={tab} className={`nav-tab-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                    {isActive && <div className="nav-tab-active-indicator"></div>}
+                    {tab}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SCREEN 6 — WARDROBE ARCHIVE */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 06 — WARDROBE ARCHIVE</div>
+          </div>
+          <div className="mobile-screen-enclosure">
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 24px 16px 24px' }}>
+              <span className="font-title-header" style={{ color: 'var(--text-primary)', fontSize: '36px' }}>WARDROBE</span>
+              <div style={{ border: '0.5px solid var(--border)', padding: '4px 8px' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '8px' }}>{wardrobe.length} ITEMS</span>
+              </div>
+            </div>
+
+            {/* Search row */}
+            <div style={{ height: '40px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 24px' }}>
+              <span style={{ color: 'var(--text-ghost)', fontSize: '12px', marginRight: '10px' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="SEARCH ARCHIVE..."
+                className="font-micro-mono"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  flex: 1,
+                  fontSize: '10px',
+                  letterSpacing: '0.2em'
+                }}
+              />
+            </div>
+
+            {/* Filter chips */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '12px 24px', height: '56px' }}>
+              {['ALL', 'SHIRTS', 'PANTS', 'SHOES', 'JACKETS', 'ACCESSORIES'].map((filter) => {
+                const isActive = archiveFilter === filter;
+                return (
+                  <div
+                    key={filter}
+                    onClick={() => setArchiveFilter(filter)}
+                    style={{
+                      border: isActive ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                      padding: '6px 14px',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '8px',
+                      letterSpacing: '0.25em',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {isActive && <span style={{ marginRight: '4px' }}>◆</span>}
+                    {filter}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sort Bar */}
+            <div style={{ height: '28px', borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)', display: 'flex' }}>
+              <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="font-micro-mono">
+                SORT · RECENT
+              </div>
+              <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="font-micro-mono">
+                FILTER
+              </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="font-micro-mono">
+                ⊞ GRID
+              </div>
+            </div>
+
+            {/* Grid layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', paddingBottom: '120px' }}>
+              {wardrobe
+                .filter(item => archiveFilter === 'ALL' || (item.category && item.category.toUpperCase() === archiveFilter))
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedArchiveItem(item)}
+                    style={{
+                      borderRight: '0.5px solid var(--border)',
+                      borderBottom: '0.5px solid var(--border)',
+                      position: 'relative',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      height: '240px'
+                    }}
+                  >
+                    {/* Image Area */}
+                    <div style={{ height: '68%', backgroundColor: 'var(--surface-2)', position: 'relative' }}>
+                      <img src={item.image_path} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div className="font-micro-mono" style={{ position: 'absolute', top: '8px', left: '8px', color: 'var(--text-secondary)', fontSize: '6px' }}>
+                        {item.category ? item.category.toUpperCase() : 'UNKNOWN'}
+                      </div>
+                      
+                      {/* Color indicator dot */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: item.color ? item.color.toLowerCase() : '#fff',
+                        border: '0.5px solid var(--border-strong)'
+                      }}></div>
+                    </div>
+
+                    {/* Info Area */}
+                    <div style={{ height: '32%', padding: '12px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderTop: '0.5px solid var(--border)' }}>
+                      <div>
+                        <div className="font-label-mono" style={{ fontSize: '11px', color: 'var(--text-primary)', letterSpacing: '0.1em' }}>
+                          {item.name}
+                        </div>
+                        <div className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '8px', letterSpacing: '0.2em', marginTop: '2px' }}>
+                          {item.fit ? item.fit.toUpperCase() : 'REGULAR'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <span className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '12px' }}>→</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+              {/* Empty Last Card to Add Item */}
+              <div
+                onClick={() => alert('NAVIGATING TO SCAN ITEM PANEL')}
+                style={{
+                  borderRight: '0.5px solid var(--border)',
+                  borderBottom: '0.5px solid var(--border)',
+                  borderStyle: 'dashed',
+                  height: '240px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <div className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '9px', letterSpacing: '0.2em' }}>
+                  ＋ ADD ITEM
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom sheet peeking */}
+            {selectedArchiveItem && (
+              <React.Fragment>
+                <div className="bottom-sheet-overlay" onClick={() => setSelectedArchiveItem(null)}></div>
+                <div className="bottom-sheet-panel">
+                  <div className="bottom-sheet-handle"></div>
+                  
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ width: '90px', height: '110px', border: '0.5px solid var(--border)', backgroundColor: 'var(--surface-2)' }}>
+                      <img src={selectedArchiveItem.image_path} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div className="font-title-header" style={{ fontSize: '22px', color: 'var(--text-primary)' }}>
+                          {selectedArchiveItem.name}
+                        </div>
+                        <div className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '8px', letterSpacing: '0.2em', marginTop: '4px' }}>
+                          {selectedArchiveItem.category ? selectedArchiveItem.category.toUpperCase() : 'SHIRTS'} · {selectedArchiveItem.color ? selectedArchiveItem.color.toUpperCase() : 'WHITE'}
+                        </div>
+                      </div>
+                      <div className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '8px', letterSpacing: '0.2em' }}>
+                        {selectedArchiveItem.fit ? selectedArchiveItem.fit.toUpperCase() : 'SLIM FIT'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 50/50 Buttons */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="brutalist-btn"
+                      style={{ flex: 1, borderColor: 'var(--danger)', color: 'var(--danger)' }}
+                      onClick={() => deleteArchiveItem(selectedArchiveItem.id)}
+                    >
+                      DELETE
+                    </button>
+                    <button
+                      className="brutalist-btn"
+                      style={{ flex: 1 }}
+                      onClick={() => setSelectedArchiveItem(null)}
+                    >
+                      DONE
+                    </button>
+                  </div>
+                </div>
+              </React.Fragment>
+            )}
+
+            {/* Bottom Nav */}
+            <div className="screen-bottom-nav">
+              {['HOME', 'WARDROBE', 'STYLE', 'PROFILE'].map((tab) => {
+                const isActive = activeTab === tab;
+                return (
+                  <div key={tab} className={`nav-tab-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                    {isActive && <div className="nav-tab-active-indicator"></div>}
+                    {tab}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SCREEN 7 — AI STYLIST CHAT */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 07 — AI STYLIST CHAT</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Header */}
+            <div style={{ height: '56px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-primary)', fontSize: '10px', letterSpacing: '0.4em' }}>A · T · E · L · I · E · R</span>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.4em', marginTop: '2px' }}>S · T · Y · L · I · S · T</span>
+              </div>
+              <span
+                onClick={() => setChatMessages([])}
+                className="font-micro-mono"
+                style={{ color: 'var(--text-ghost)', fontSize: '8px', cursor: 'pointer' }}
+              >
+                RESET
+              </span>
+            </div>
+
+            {/* Messages Area */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 120px 24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {chatMessages.length === 0 ? (
+                /* Empty state */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '120px' }}>
+                  <div style={{ width: '64px', height: '64px', border: '0.5px solid var(--border)', backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '28px', color: 'var(--text-ghost)' }}>✦</span>
+                  </div>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '9px', letterSpacing: '0.35em', marginTop: '16px' }}>STATE YOUR OCCASION</span>
+                  <span className="font-caption-text" style={{ color: 'var(--text-ghost)', fontSize: '12px', marginTop: '8px' }}>I will curate from your wardrobe.</span>
+                </div>
+              ) : (
+                chatMessages.map((msg, index) => {
+                  const isModel = msg.role === 'model';
+                  return (
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: isModel ? 'flex-start' : 'flex-end', width: '100%' }}>
+                      {isModel ? (
+                        /* AI Stylist response */
+                        <div style={{ display: 'flex', gap: '14px', position: 'relative', paddingLeft: '20px' }}>
+                          {/* Accent left line */}
+                          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '0.5px', height: '48px', backgroundColor: 'var(--accent)' }}></div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <p className="font-body-text" style={{ color: 'var(--text-primary)', fontSize: '14px', lineHeight: '1.6' }}>
+                              {msg.text}
+                            </p>
+
+                            {/* Lookbook recommendations if present */}
+                            {msg.recommendations && msg.recommendations.map((rec, rIdx) => {
+                              const recId = `rec-${index}-${rIdx}`;
+                              const isExpanded = expandedLookbookId === recId;
+                              return (
+                                <div key={rIdx} className="lookbook-card">
+                                  {/* Header */}
+                                  <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '0.5px solid var(--border)' }}>
+                                    <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '8px' }}>LOOKBOOK {String(rIdx + 1).padStart(2, '0')} / 03</span>
+                                    <span style={{ color: 'var(--accent)', fontSize: '6px' }}>◆</span>
+                                  </div>
+
+                                  {/* Grid */}
+                                  <div className="lookbook-grid">
+                                    {/* Left Top Item */}
+                                    <div className="lookbook-left">
+                                      {rec.top ? (
+                                        <React.Fragment>
+                                          <img src={rec.top.image_path} className="lookbook-img" />
+                                          <div className="glassmorphism-tag">{rec.top.name} · {rec.top.fit ? rec.top.fit.split(' ')[0] : 'Slim'}</div>
+                                        </React.Fragment>
+                                      ) : (
+                                        <div style={{ padding: '8px' }} className="font-micro-mono">NO TOP</div>
+                                      )}
+                                      <div className="font-micro-mono" style={{ position: 'absolute', top: '8px', left: '8px', color: 'var(--text-secondary)', fontSize: '6px' }}>TOP</div>
+                                    </div>
+
+                                    {/* Right side splits */}
+                                    <div className="lookbook-right">
+                                      <div className="lookbook-right-top">
+                                        {rec.bottom ? (
+                                          <React.Fragment>
+                                            <img src={rec.bottom.image_path} className="lookbook-img" />
+                                            <div className="glassmorphism-tag">{rec.bottom.name}</div>
+                                          </React.Fragment>
+                                        ) : (
+                                          <div style={{ padding: '8px' }} className="font-micro-mono">NO PANTS</div>
+                                        )}
+                                        <div className="font-micro-mono" style={{ position: 'absolute', top: '8px', left: '8px', color: 'var(--text-secondary)', fontSize: '6px' }}>BOTTOM</div>
+                                      </div>
+                                      <div className="lookbook-right-bottom">
+                                        {rec.shoes ? (
+                                          <React.Fragment>
+                                            <img src={rec.shoes.image_path} className="lookbook-img" />
+                                            <div className="glassmorphism-tag">{rec.shoes.name}</div>
+                                          </React.Fragment>
+                                        ) : (
+                                          <div style={{ padding: '8px' }} className="font-micro-mono">NO SHOES</div>
+                                        )}
+                                        <div className="font-micro-mono" style={{ position: 'absolute', top: '8px', left: '8px', color: 'var(--text-secondary)', fontSize: '6px' }}>SHOES</div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Expandable Footer */}
+                                  <div
+                                    onClick={() => setExpandedLookbookId(isExpanded ? null : recId)}
+                                    style={{ height: '40px', display: 'flex', alignItems: 'center', padding: '0 16px', cursor: 'pointer' }}
+                                  >
+                                    <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '8px' }}>
+                                      {isExpanded ? '▴ HIDE NOTES' : '▾ VIEW EDITORIAL NOTES'}
+                                    </span>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div style={{ padding: '16px', borderTop: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {rec.reason.split('\n').map((bullet, bIdx) => (
+                                        <div key={bIdx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                          <div style={{ width: '4px', height: '4px', backgroundColor: 'var(--accent)', marginTop: '6px' }}></div>
+                                          <span className="font-caption-text" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                            {bullet.replace('•', '').trim()}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        /* User Message */
+                        <div style={{
+                          maxWidth: '72%',
+                          backgroundColor: 'var(--surface)',
+                          border: '0.5px solid var(--border-strong)',
+                          borderRadius: '18px 18px 4px 18px',
+                          padding: '12px 16px'
+                        }}>
+                          <p className="font-body-text" style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                            {msg.text}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+
+              {/* Typing indicator */}
+              {isStylistTyping && (
+                <div style={{ display: 'flex', gap: '14px', position: 'relative', paddingLeft: '20px' }}>
+                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '0.5px', height: '24px', backgroundColor: 'var(--accent)' }}></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '9px' }}>CURATING COMBINATIONS</span>
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                      <div style={{ width: '4px', height: '4px', backgroundColor: 'var(--accent)' }}></div>
+                      <div style={{ width: '4px', height: '4px', backgroundColor: 'var(--accent)', opacity: typingDots.length > 1 ? 1 : 0.3 }}></div>
+                      <div style={{ width: '4px', height: '4px', backgroundColor: 'var(--accent)', opacity: typingDots.length > 2 ? 1 : 0.3 }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input & suggestion strip */}
+            <div style={{ position: 'absolute', bottom: '56px', left: 0, right: 0, background: 'var(--bg)', borderTop: '0.5px solid var(--border)', zIndex: 89 }}>
+              {/* Suggestions */}
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '12px 24px 0 24px', height: '44px' }}>
+                {['CASUAL', 'SOIREE', 'OFFICE', 'WEDDING', 'SKIP DETAILS'].map((chip) => (
+                  <div
+                    key={chip}
+                    onClick={() => sendChatMessage(`Curate looks for: ${chip}`)}
+                    style={{
+                      border: '0.5px solid var(--border)',
+                      color: 'var(--text-secondary)',
+                      padding: '4px 12px',
+                      fontFamily: 'DM Mono, monospace',
+                      fontSize: '8px',
+                      letterSpacing: '0.25em',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {chip}
+                  </div>
+                ))}
+              </div>
+
+              {/* Chat Input Bar */}
+              <div style={{ height: '56px', display: 'flex', alignItems: 'center', padding: '0 24px', justifyContent: 'space-between' }}>
+                <input
+                  type="text"
+                  placeholder="STATE YOUR REQUISITE —"
+                  className="font-micro-mono"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    flex: 1,
+                    fontSize: '10px',
+                    letterSpacing: '0.2em'
+                  }}
+                  value={chatInputText}
+                  onChange={(e) => setChatInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+                />
+                
+                {/* Square Send button */}
+                <button
+                  onClick={() => sendChatMessage()}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    border: isStylistTyping ? '0.5px solid var(--accent)' : '0.5px solid var(--text-primary)',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {isStylistTyping ? (
+                    <span className="animate-spin-custom" style={{ color: 'var(--accent)' }}>✦</span>
+                  ) : (
+                    <span className="font-heading-mono" style={{ fontSize: '14px', textTransform: 'none' }}>↑</span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Nav */}
+            <div className="screen-bottom-nav">
+              {['HOME', 'WARDROBE', 'STYLE', 'PROFILE'].map((tab) => {
+                const isActive = activeTab === tab;
+                return (
+                  <div key={tab} className={`nav-tab-item ${isActive ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                    {isActive && <div className="nav-tab-active-indicator"></div>}
+                    {tab}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SCREEN 8 — PROFILE DOSSIER */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 08 — PROFILE DOSSIER</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ padding: '24px' }}>
+            <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.4em' }}>PROFILE DOSSIER</span>
+
+            {/* Identity Block */}
+            <div style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--surface)', padding: '24px', marginTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                {/* Monogram Square */}
+                <div style={{ width: '52px', height: '52px', border: '0.5px solid var(--border-strong)', backgroundColor: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="font-heading-mono" style={{ color: 'var(--text-primary)', fontSize: '16px' }}>RY</span>
+                </div>
+                <div>
+                  <div className="font-title-header" style={{ fontSize: '24px', fontWeight: '600' }}>
+                    {profile.name}
+                  </div>
+                  <div className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.25em', marginTop: '4px' }}>
+                    STYLE PROFILE · {profile.undertone ? profile.undertone.toUpperCase() : 'WARM'} UNDERTONE
+                  </div>
+                </div>
+              </div>
+
+              {/* Confidence Meter */}
+              <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', letterSpacing: '0.2em' }}>BIOMETRIC CONFIDENCE</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)', fontWeight: '500' }}>HIGH — 94%</span>
+              </div>
+            </div>
+
+            {/* Biometric Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', marginTop: '24px', border: '0.5px solid var(--border)' }}>
+              <div style={{ height: '80px', padding: '16px', borderRight: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>BODY SHAPE</span>
+                <span className="font-caption-text" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', color: 'var(--text-primary)' }}>{profile.body_type}</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '6px', textAlign: 'right' }}>AI VISION</span>
+              </div>
+              <div style={{ height: '80px', padding: '16px', borderBottom: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>SKIN TONE</span>
+                <span className="font-caption-text" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', color: 'var(--text-primary)' }}>{profile.skin_tone} ({profile.undertone})</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '6px', textAlign: 'right' }}>AI VISION</span>
+              </div>
+              <div style={{ height: '80px', padding: '16px', borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>FACE SHAPE</span>
+                <span className="font-caption-text" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', color: 'var(--text-primary)' }}>{profile.face_shape}</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '6px', textAlign: 'right' }}>AI VISION</span>
+              </div>
+              <div style={{ height: '80px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>STATURE</span>
+                <span className="font-caption-text" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '18px', color: 'var(--text-primary)' }}>{profile.estimated_height}</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)', fontSize: '6px', textAlign: 'right' }}>AI VISION</span>
+              </div>
+            </div>
+
+            {/* Style matrix label */}
+            <div className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '7px', letterSpacing: '0.4em', textAlign: 'center', margin: '24px 0' }}>
+              ── STYLE MATRIX ──
+            </div>
+
+            {/* Wardrobe completeness */}
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)' }}>WARDROBE COMPLETENESS</span>
+                <span className="font-micro-mono" style={{ color: 'var(--accent)' }}>60%</span>
+              </div>
+              <div style={{ width: '100%', height: '3px', backgroundColor: 'var(--surface)', position: 'relative' }}>
+                <div style={{ width: '60%', height: '3px', backgroundColor: 'var(--accent)' }}></div>
+              </div>
+            </div>
+
+            <button className="brutalist-btn" onClick={() => alert('EDIT DOSSIER')}>
+              EDIT DOSSIER →
+            </button>
+          </div>
+
+          {/* SCREEN 9 — CLOSET ANALYTICS */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 09 — CLOSET ANALYTICS</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ padding: '24px' }}>
+            {/* Ghost Background label */}
+            <div className="font-title-header" style={{
+              position: 'absolute',
+              top: '20px',
+              right: '-10px',
+              fontSize: '96px',
+              color: 'var(--surface)',
+              opacity: 0.4,
+              fontFamily: 'Cormorant Garamond, serif',
+              zIndex: 0,
+              userSelect: 'none'
+            }}>
+              METRICS
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <span className="font-label-mono" style={{ color: 'var(--text-primary)', fontSize: '13px', letterSpacing: '0.25em' }}>CLOSET METRICS</span>
+              <div className="font-caption-text" style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', marginBottom: '32px' }}>
+                Stylistic breakdown · MongoDB Atlas sync · Last updated 2m ago
+              </div>
+
+              {/* Primary Stat Row */}
+              <div style={{ display: 'flex', borderTop: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)', height: '64px', marginBottom: '32px' }}>
+                <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '8px' }}>
+                  <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: '600', fontSize: '32px', color: 'var(--text-primary)', lineHeight: '1.0' }}>{wardrobe.length}</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.2em' }}>TOTAL ITEMS</span>
+                </div>
+                <div style={{ flex: 1, borderRight: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '8px' }}>
+                  <span className="font-label-mono" style={{ fontSize: '16px', color: 'var(--accent)', letterSpacing: '0.1em', lineHeight: '1.2' }}>WHITE</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.2em' }}>DOMINANT SHADE</span>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '8px' }}>
+                  <span style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: '600', fontSize: '32px', color: 'var(--text-primary)', lineHeight: '1.0' }}>5</span>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.2em' }}>CATEGORIES</span>
+                </div>
+              </div>
+
+              {/* Category list with visual bars */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+                {getCategoryBreakdowns().map((row, idx) => (
+                  <div key={idx} style={{ height: '44px', display: 'flex', alignItems: 'center', borderBottom: '0.5px solid var(--border)' }}>
+                    <span className="font-micro-mono" style={{ width: '80px', color: 'var(--text-primary)', fontSize: '9px', letterSpacing: '0.15em' }}>{row.name}</span>
+                    <div style={{ flexGrow: 1, height: '3px', backgroundColor: 'var(--surface-2)', margin: '0 16px', position: 'relative' }}>
+                      <div style={{ width: `${row.percentage}%`, height: '3px', backgroundColor: 'var(--accent)' }}></div>
+                    </div>
+                    <span className="font-micro-mono" style={{ width: '32px', color: 'var(--text-secondary)', fontSize: '9px', textAlign: 'right' }}>{row.count}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Color breakdown swatches row */}
+              <div>
+                <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.25em', display: 'block', marginBottom: '12px' }}>COLOR BREAKDOWN</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {[
+                    { color: '#ffffff', name: 'WHITE', pct: '60%' },
+                    { color: '#1a2035', name: 'NAVY', pct: '20%' },
+                    { color: '#000000', name: 'BLACK', pct: '10%' },
+                    { color: '#d5c4a1', name: 'BEIGE', pct: '5%' },
+                    { color: '#888888', name: 'GREY', pct: '3%' },
+                    { color: '#5c4033', name: 'BROWN', pct: '2%' }
+                  ].map((swatch, idx) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        backgroundColor: swatch.color,
+                        border: '0.5px solid var(--border-strong)',
+                        borderRadius: '0px'
+                      }}></div>
+                      <span className="font-micro-mono" style={{ fontSize: '6px', color: 'var(--text-secondary)', marginTop: '4px', transform: 'scale(0.8)' }}>{swatch.name}</span>
+                      <span className="font-micro-mono" style={{ fontSize: '6px', color: 'var(--text-ghost)' }}>{swatch.pct}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SCREEN 10 — SCAN CLOTHING (AI UPLOAD) */}
+          <div className="screen-separator-container">
+            <div className="screen-separator-line"></div>
+            <div className="screen-separator-label">SCREEN 10 — SCAN CLOTHING</div>
+          </div>
+          <div className="mobile-screen-enclosure" style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Top 62% Image Zone */}
+            <div
+              onClick={handleImageSelectSimulate}
+              style={{
+                height: '62%',
+                backgroundColor: 'var(--bg)',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                overflow: 'hidden'
+              }}
+            >
+              {itemPhoto ? (
+                <React.Fragment>
+                  <img src={itemPhoto} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: isItemScanning ? 0.3 : 1.0 }} />
+                  
+                  {/* Viewfinder crop brackets */}
+                  <div style={{ position: 'absolute', top: '16px', left: '16px', width: '12px', height: '12px', borderLeft: '0.5px solid var(--accent)', borderTop: '0.5px solid var(--accent)' }}></div>
+                  <div style={{ position: 'absolute', top: '16px', right: '16px', width: '12px', height: '12px', borderRight: '0.5px solid var(--accent)', borderTop: '0.5px solid var(--accent)' }}></div>
+                  <div style={{ position: 'absolute', bottom: '16px', left: '16px', width: '12px', height: '12px', borderLeft: '0.5px solid var(--accent)', borderBottom: '0.5px solid var(--accent)' }}></div>
+                  <div style={{ position: 'absolute', bottom: '16px', right: '16px', width: '12px', height: '12px', borderRight: '0.5px solid var(--accent)', borderBottom: '0.5px solid var(--accent)' }}></div>
+                  
+                  {/* Laser line sweeping */}
+                  {isItemScanning && <div className="scanning-laser-line" style={{ height: '0.5px' }}></div>}
+                </React.Fragment>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {/* Centered crosshair */}
+                  <div style={{ position: 'relative', width: '14px', height: '14px' }}>
+                    <div style={{ position: 'absolute', top: '7px', left: '0', width: '14px', height: '0.5px', backgroundColor: 'var(--border)' }}></div>
+                    <div style={{ position: 'absolute', top: '0', left: '7px', width: '0.5px', height: '14px', backgroundColor: 'var(--border)' }}></div>
+                  </div>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '8px', marginTop: '12px', letterSpacing: '0.3em' }}>TAP TO CAPTURE</span>
+                </div>
+              )}
+
+              {/* Stacked labels */}
+              {isItemScanning && (
+                <div style={{ position: 'absolute', left: '24px', bottom: '24px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span className="font-micro-mono" style={{ color: itemScanStep >= 1 ? 'var(--accent)' : 'var(--text-ghost)', fontSize: '7px' }}>■ FABRIC DETECTED</span>
+                  <span className="font-micro-mono" style={{ color: itemScanStep >= 2 ? 'var(--accent)' : 'var(--text-ghost)', fontSize: '7px' }}>■ COLOR EXTRACTED</span>
+                  <span className="font-micro-mono" style={{ color: itemScanStep >= 3 ? 'var(--accent)' : 'var(--text-ghost)', fontSize: '7px' }}>■ CATEGORY MAPPED</span>
+                  <span className="font-micro-mono" style={{ color: itemScanStep >= 4 ? 'var(--accent)' : 'var(--text-ghost)', fontSize: '7px' }}>■ FIT ANALYSIS</span>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom 38% Results Panel */}
+            <div style={{
+              height: '38%',
+              backgroundColor: 'var(--surface)',
+              borderTop: '0.5px solid var(--border)',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              {showResultsPanel ? (
+                <React.Fragment>
+                  {/* Attribute list */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {Object.keys(detectedItemData).map((field) => {
+                      const isEditing = activeEditField === field;
+                      return (
+                        <div key={field} style={{ height: '40px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span className="font-micro-mono" style={{ color: 'var(--text-secondary)', fontSize: '7px', letterSpacing: '0.2em' }}>{field.toUpperCase()}</span>
+                          
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              style={{
+                                border: 'none',
+                                borderBottom: '0.5px solid var(--accent)',
+                                background: 'transparent',
+                                color: 'var(--text-primary)',
+                                textAlign: 'right',
+                                outline: 'none',
+                                width: '120px',
+                                fontFamily: 'DM Mono, monospace',
+                                fontSize: '13px'
+                              }}
+                              value={detectedItemData[field]}
+                              autoFocus
+                              onChange={(e) => setDetectedItemData({ ...detectedItemData, [field]: e.target.value.toUpperCase() })}
+                              onBlur={() => setActiveEditField(null)}
+                              onKeyDown={(e) => e.key === 'Enter' && setActiveEditField(null)}
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setActiveEditField(field)}
+                              className="font-heading-mono"
+                              style={{ fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                            >
+                              {detectedItemData[field]}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button className="brutalist-btn" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }} onClick={saveScannedItem}>
+                    SAVE TO WARDROBE →
+                  </button>
+                </React.Fragment>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <span className="font-micro-mono" style={{ color: 'var(--text-ghost)', fontSize: '9px', letterSpacing: '0.25em' }}>WAITING FOR CAPTURE</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </React.Fragment>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<App />);
+  </script>
+</body>
+</html>
