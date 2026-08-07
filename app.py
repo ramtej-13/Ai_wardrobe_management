@@ -2,6 +2,8 @@ import os
 import uuid
 import shutil
 import json
+import time
+import secrets
 from PIL import Image
 import google.generativeai as genai
 from fastapi import FastAPI, HTTPException, status, File, UploadFile, Request
@@ -72,6 +74,29 @@ if os.path.exists(CONFIG_FILE):
 if gemini_key:
     genai.configure(api_key=gemini_key)
 
+# demo_mode: when True (default for local/demo), POST /auth/login returns the
+# access code in the response so the app works without an email service. Set
+# "demo_mode": false in config.json before deploying publicly.
+#
+# allow_email_header: legacy X-User-Email fallback used by the test scripts and
+# the Flutter client. Set false for token-only auth in production.
+demo_mode = True
+allow_email_header = True
+if os.path.exists(CONFIG_FILE):
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+            demo_mode = bool(cfg.get("demo_mode", True))
+            allow_email_header = bool(cfg.get("allow_email_header", True))
+    except Exception:
+        pass
+
+# --- Session auth (in-memory stores; single-process FastAPI) ---
+OTP_STORE = {}    # email -> {"code": str, "exp": float}
+TOKEN_STORE = {}  # token  -> {"email": str, "exp": float}
+OTP_TTL = 300            # access code valid for 5 minutes, single-use
+TOKEN_TTL = 30 * 86400   # session token valid for 30 days
+
 # Document identifier constant
 DB_IDENTIFIER = "active_wardrobe"
 
@@ -118,20 +143,60 @@ class RecommendationRequest(BaseModel):
     occasion: str
 
 
+class LoginRequest(BaseModel):
+    email: str
+
+
+class VerifyRequest(BaseModel):
+    email: str
+    otp: str
+
+
 # Helpers
 def get_db_identifier(request: Request) -> str:
-    """Extracts X-User-Email header to form a clean, isolated user DB document identifier."""
-    email = request.headers.get("X-User-Email")
-    print(f"[API HEADER CHECK] X-User-Email header value: '{email}'")
-    if email:
-        email = email.strip().lower()
-        if not email.endswith("@gmail.com"):
+    """Resolves the authenticated user's DB document identifier.
+
+    Prefers a bearer session token (Authorization: Bearer <token>) issued by
+    POST /auth/verify. Falls back to the legacy X-User-Email header so existing
+    clients (test scripts, the Flutter app, older sessions) keep working —
+    remove that fallback before public deployment to enforce token-only auth.
+    """
+    auth = request.headers.get("Authorization") or ""
+    if auth.lower().startswith("bearer "):
+        token = auth[7:].strip()
+        entry = TOKEN_STORE.get(token)
+        if not entry or time.time() > entry["exp"]:
+            TOKEN_STORE.pop(token, None)
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Authentication failed. Only Gmail (@gmail.com) accounts are permitted."
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please sign in again.",
+                headers={"WWW-Authenticate": "Bearer"},
             )
+        email = entry["email"]
         sanitized = email.replace("@", "_").replace(".", "_")
         return f"wardrobe_{sanitized}"
+
+    # Legacy fallback: X-User-Email header (token-only deployments disable this)
+    if allow_email_header:
+        email = request.headers.get("X-User-Email")
+        print(f"[API HEADER CHECK] X-User-Email header value: '{email}'")
+        if email:
+            email = email.strip().lower()
+            if not email.endswith("@gmail.com"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Authentication failed. Only Gmail (@gmail.com) accounts are permitted."
+                )
+            sanitized = email.replace("@", "_").replace(".", "_")
+            return f"wardrobe_{sanitized}"
+
+    # Token-only deployments reject anonymous access outright
+    if not allow_email_header:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return DB_IDENTIFIER
 
 def get_wardrobe_or_error(db_id: str, enforce_user: bool = True) -> Wardrobe:
@@ -152,6 +217,75 @@ def get_wardrobe_or_error(db_id: str, enforce_user: bool = True) -> Wardrobe:
             detail="User profile is missing. Please create a user profile first via POST /user."
         )
     return wardrobe
+
+
+# Auth endpoints
+@app.post("/auth/login", tags=["Auth"])
+def auth_login(req: LoginRequest):
+    """Requests a 6-digit access code for the given email.
+
+    In demo mode (config.json "demo_mode": true, the default) the code is also
+    returned as `dev_otp` so the app works without an email service. Codes are
+    valid for 5 minutes and are single-use.
+    """
+    # Prune expired entries so the in-memory stores stay bounded
+    now = time.time()
+    for k in [k for k, v in OTP_STORE.items() if v["exp"] < now]:
+        OTP_STORE.pop(k, None)
+    for k in [k for k, v in TOKEN_STORE.items() if v["exp"] < now]:
+        TOKEN_STORE.pop(k, None)
+
+    email = req.email.strip().lower()
+    if not email.endswith("@gmail.com"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authentication failed. Only Gmail (@gmail.com) accounts are permitted."
+        )
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    OTP_STORE[email] = {"code": code, "exp": now + OTP_TTL, "attempts": 0}
+    print(f"[AUTH] Access code for {email}: {code}")
+    resp = {
+        "message": "Access code sent.",
+        "email": email,
+        "expires_in": OTP_TTL,
+    }
+    if demo_mode:
+        resp["dev_otp"] = code
+    return resp
+
+
+@app.post("/auth/verify", tags=["Auth"])
+def auth_verify(req: VerifyRequest):
+    """Exchanges a valid access code for a 30-day session token."""
+    email = req.email.strip().lower()
+    entry = OTP_STORE.get(email)
+    if not entry or time.time() > entry["exp"]:
+        OTP_STORE.pop(email, None)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access code expired. Request a new one."
+        )
+    if entry.get("attempts", 0) >= 5:
+        OTP_STORE.pop(email, None)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Too many incorrect attempts. Request a new access code."
+        )
+    if entry["code"] != req.otp.strip():
+        entry["attempts"] = entry.get("attempts", 0) + 1
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect access code."
+        )
+    OTP_STORE.pop(email, None)  # codes are single-use
+    token = secrets.token_urlsafe(32)
+    TOKEN_STORE[token] = {"email": email, "exp": time.time() + TOKEN_TTL}
+    print(f"[AUTH] Issued session token for {email}")
+    return {
+        "token": token,
+        "email": email,
+        "expires_in": TOKEN_TTL,
+    }
 
 
 # Endpoints
