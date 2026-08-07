@@ -2,25 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AtelierTheme {
-  // Brand color tokens (Ice & Orchid Cyber-Luxury Palette)
-  static const Color background = Color(0xFF030304);      // Void Black
-  static const Color surface = Color(0xFF0D0D12);         // Space Obsidian
-  static const Color surfaceAccent = Color(0xFF16161F);   // Slate Obsidian
-  static const Color border = Color(0xFF1E1E28);          // Slate Border
-  static const Color accent = Color(0xFF8DF7FF);          // Ice Neon Cyan
-  static const Color primaryText = Colors.white;
-  static const Color secondaryText = Color(0xFF8F8F9F);   // Cool Grey
-  static const Color warning = Color(0xFFFE4A49);         // Crimson Red
+  // Brand color tokens — Sage & Cream (English heritage × Korean muted)
+  static const Color background = Color(0xFF0C110E);      // Deep forest black
+  static const Color surface = Color(0xFF111A14);         // Obsidian sage
+  static const Color surfaceAccent = Color(0xFF1A2319);   // Slate sage
+  static const Color border = Color(0xFF232B23);          // Sage border
+  static const Color accent = Color(0xFFAEC49A);          // Sage
+  static const Color accentBright = Color(0xFFE6EAD7);    // Pale cream-sage
+  static const Color accentDeep = Color(0xFF6F8255);      // Forest olive
+  static const Color primaryText = Color(0xFFECEAD8);     // Warm cream
+  static const Color secondaryText = Color(0xFFC6C6AE);   // Soft sage-grey
+  static const Color warning = Color(0xFFD98B8B);         // Dusty rose
+  static const Color success = Color(0xFF86C79E);         // Sage green
 
   // Gradient configurations
   static const LinearGradient luxuryGradient = LinearGradient(
-    colors: [Color(0xFF0E0E14), Color(0xFF030304)],
+    colors: [Color(0xFF111A14), Color(0xFF0C110E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFF8DF7FF), Color(0xFFD980FF)], // Ice Cyan to Orchid Violet
+    colors: [Color(0xFFDDE3C9), Color(0xFF6F8255)], // Cream-sage to forest olive
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -33,32 +36,33 @@ class AtelierTheme {
       cardColor: surface,
       dividerColor: border,
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.outfit(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
+        displayLarge: GoogleFonts.fraunces(
+          fontSize: 34,
+          fontWeight: FontWeight.w400,
+          color: primaryText,
+          letterSpacing: -1.0,
+        ),
+        displayMedium: GoogleFonts.fraunces(
+          fontSize: 26,
+          fontWeight: FontWeight.w400,
           color: primaryText,
           letterSpacing: -0.5,
         ),
-        displayMedium: GoogleFonts.outfit(
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-          color: primaryText,
-        ),
-        titleLarge: GoogleFonts.outfit(
+        titleLarge: GoogleFonts.fraunces(
           fontSize: 20,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
           color: primaryText,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: GoogleFonts.manrope(
           fontSize: 16,
           fontWeight: FontWeight.normal,
           color: primaryText,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: GoogleFonts.manrope(
           fontSize: 14,
           color: secondaryText,
         ),
-        labelLarge: GoogleFonts.outfit(
+        labelLarge: GoogleFonts.manrope(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: secondaryText,

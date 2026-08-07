@@ -54,7 +54,7 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
                 gradient: LinearGradient(
                   colors: [
                     AtelierTheme.accent.withOpacity(0.25),
-                    const Color(0xFFD980FF).withOpacity(0.05),
+                    const Color(0xFFAEC49A).withOpacity(0.08),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

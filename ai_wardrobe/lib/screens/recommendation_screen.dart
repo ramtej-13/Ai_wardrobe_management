@@ -134,10 +134,10 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                 height: 350,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFD980FF).withOpacity(0.02),
+                  color: const Color(0xFFAEC49A).withOpacity(0.02),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFD980FF).withOpacity(0.02),
+                      color: const Color(0xFFAEC49A).withOpacity(0.02),
                       blurRadius: 140,
                       spreadRadius: 50,
                     ),
@@ -250,12 +250,12 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isUser
-                      ? const Color(0xFFD980FF).withOpacity(0.08)
+                      ? const Color(0xFFAEC49A).withOpacity(0.08)
                       : AtelierTheme.accent.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
                     color: isUser
-                        ? const Color(0xFFD980FF).withOpacity(0.2)
+                        ? const Color(0xFFAEC49A).withOpacity(0.2)
                         : AtelierTheme.accent.withOpacity(0.2),
                     width: 0.6,
                   ),
@@ -265,7 +265,7 @@ class _RecommendationScreenState extends ConsumerState<RecommendationScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
-                    color: isUser ? const Color(0xFFD980FF) : AtelierTheme.accent,
+                    color: isUser ? AtelierTheme.accent : AtelierTheme.accentDeep,
                     letterSpacing: 2.0,
                   ),
                 ),
