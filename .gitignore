@@ -9,3 +9,6 @@ notes.txt
 static/uploads/
 wardrobe_fallback*.json
 wardrobe.json
+.freebuff/
+*.log
+*.png
